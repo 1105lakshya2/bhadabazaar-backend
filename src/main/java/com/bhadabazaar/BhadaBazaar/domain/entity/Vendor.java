@@ -3,18 +3,18 @@ package com.bhadabazaar.BhadaBazaar.domain.entity;
 import com.bhadabazaar.BhadaBazaar.domain.enums.GenderType;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
-import io.hypersistence.utils.hibernate.type.array.ListArrayType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import com.bhadabazaar.BhadaBazaar.domain.converter.ItemCategoryListConverter;
 
 @Entity
 @Table(name = "vendors")
@@ -58,8 +58,8 @@ public class Vendor {
     @Column(name = "gender_served", nullable = false)
     private GenderType genderServed;
 
-    @Type(ListArrayType.class)
-    @Column(name = "categories", columnDefinition = "text[]", nullable = false)
+    @Column(name = "categories", columnDefinition = "item_category[]", nullable = false)
+    @Convert(converter = ItemCategoryListConverter.class)
     private List<ItemCategory> categories;
 
     @Column(name = "store_image_url")

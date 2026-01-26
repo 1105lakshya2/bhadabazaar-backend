@@ -23,9 +23,6 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
     @Query("SELECT DISTINCT v.city FROM Vendor v WHERE v.status = 'APPROVED'")
     List<String> findAllCities();
     
-    @Query("SELECT v FROM Vendor v WHERE v.status = 'APPROVED' AND (LOWER(v.vendorName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(v.shopName) LIKE LOWER(CONCAT('%', :query, '%')))")
-    Page<Vendor> searchVendors(String query, Pageable pageable);
-    
-    @Query("SELECT v FROM Vendor v WHERE v.status = 'APPROVED' AND (LOWER(v.vendorName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(v.shopName) LIKE LOWER(CONCAT('%', :query, '%')))")
+    @Query("SELECT v FROM Vendor v WHERE v.status = 'APPROVED' AND  LOWER(v.shopName) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Vendor> searchVendorsList(String query);
 }

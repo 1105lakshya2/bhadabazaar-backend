@@ -46,7 +46,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         Pageable pageable
     );
 
-    Page<Booking> findByVendorIdAndCustomerPhoneContainingIgnoreCase(Long vendorId, String customerPhone);
+    List<Booking> findByVendorIdAndCustomerPhoneContainingIgnoreCase(Long vendorId, String customerPhone);
 
-    Page<Booking> findByStatusAndToDate(BookingStatus status, LocalDate toDate);
+    List<Booking> findByStatusAndToDate(BookingStatus status, LocalDate toDate);
 }

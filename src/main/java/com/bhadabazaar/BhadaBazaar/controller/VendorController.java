@@ -8,6 +8,7 @@ import com.bhadabazaar.BhadaBazaar.dto.BookingResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
+import com.bhadabazaar.BhadaBazaar.dto.MessageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.BookingService;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
@@ -91,15 +92,15 @@ public class VendorController {
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<Void> deleteItem(@PathVariable Long itemId) {
+    public ResponseEntity<MessageResponse> deleteItem(@PathVariable Long itemId) {
         itemService.deleteItem(itemId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Item deleted successfully"));
     }
 
     @PostMapping("/items/{itemId}/images")
-    public ResponseEntity<Void> uploadImages(@PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
+    public ResponseEntity<MessageResponse> uploadImages(@PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
         itemService.uploadImages(itemId, files);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Images uploaded successfully"));
     }
 
     @PostMapping("/items/{itemId}/images/{imageId}")
@@ -110,9 +111,9 @@ public class VendorController {
     }
 
     @DeleteMapping("/items/{itemId}/images/{imageId}")
-    public ResponseEntity<Void> deleteImage(@PathVariable Long itemId, @PathVariable Long imageId) {
+    public ResponseEntity<MessageResponse> deleteImage(@PathVariable Long itemId, @PathVariable Long imageId) {
         itemService.deleteImage(itemId, imageId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Image deleted successfully"));
     }
 
     @PostMapping("/bookings")
@@ -161,15 +162,15 @@ public class VendorController {
     }
 
     @PatchMapping("/bookings/{bookingId}/return")
-    public ResponseEntity<Void> markReturnPending(@PathVariable Long bookingId) {
+    public ResponseEntity<MessageResponse> markReturnPending(@PathVariable Long bookingId) {
         bookingService.updateBookingStatus(bookingId, BookingStatus.RETURN_PENDING);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Booking marked as return pending"));
     }
 
     @PatchMapping("/bookings/{bookingId}/close")
-    public ResponseEntity<Void> closeBooking(@PathVariable Long bookingId) {
+    public ResponseEntity<MessageResponse> closeBooking(@PathVariable Long bookingId) {
         bookingService.updateBookingStatus(bookingId, BookingStatus.CLOSED);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Booking closed successfully"));
     }
     
     @GetMapping("/items/availability")
@@ -189,14 +190,14 @@ public class VendorController {
     }
     
     @GetMapping("/earnings")
-    public ResponseEntity<Void> getEarnings() {
+    public ResponseEntity<MessageResponse> getEarnings() {
         // Placeholder
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Earnings placeholder"));
     }
     
     @PostMapping("/earnings/reset")
-    public ResponseEntity<Void> resetEarnings() {
+    public ResponseEntity<MessageResponse> resetEarnings() {
         // Placeholder
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(new MessageResponse("Earnings reset placeholder"));
     }
 }

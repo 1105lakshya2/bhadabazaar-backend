@@ -24,10 +24,6 @@ public class CloudflareTurnstileService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public boolean verifyToken(String token, String remoteIp) {
-        // Skip validation if token is "test-token" (for development/testing)
-        if ("test-token".equals(token)) {
-            return true;
-        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);

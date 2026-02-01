@@ -12,8 +12,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "items")
@@ -38,8 +36,7 @@ public class Item {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(columnDefinition = "item_category")
+    @Column(name = "category")
     private ItemCategory category;
 
     @Enumerated(EnumType.STRING)

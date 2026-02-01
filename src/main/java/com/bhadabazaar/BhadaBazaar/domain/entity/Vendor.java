@@ -14,7 +14,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.bhadabazaar.BhadaBazaar.domain.converter.ItemCategoryListConverter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import com.bhadabazaar.BhadaBazaar.domain.converter.StringArrayConverter;
 
 @Entity
 @Table(name = "vendors")
@@ -57,10 +60,10 @@ public class Vendor {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender_served", nullable = false)
     private GenderType genderServed;
-
-    @Column(name = "categories", columnDefinition = "item_category[]", nullable = false)
-    @Convert(converter = ItemCategoryListConverter.class)
-    private List<ItemCategory> categories;
+    
+    @Convert(converter = StringArrayConverter.class)
+    @Column(name = "categories", columnDefinition = "text[]", nullable = false)
+    private String[] categories;
 
     @Column(name = "store_image_url")
     private String storeImageUrl;

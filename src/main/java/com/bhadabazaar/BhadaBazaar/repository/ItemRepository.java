@@ -24,9 +24,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     AND i.is_active = true
     AND i.is_deleted = false
 
-    AND (:category IS NULL OR i.category = CAST(:category AS item_category))
-    AND (:gender IS NULL OR i.gender = CAST(:gender AS gender_type))
-    AND (:search IS NULL OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:category IS NULL OR i.category = :category)
+    AND (:gender IS NULL OR i.gender = :gender)
+    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
 
     AND NOT EXISTS (
         SELECT 1 FROM booking_items bi
@@ -43,9 +43,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     AND i.is_active = true
     AND i.is_deleted = false
 
-    AND (:category IS NULL OR i.category = CAST(:category AS item_category))
-    AND (:gender IS NULL OR i.gender = CAST(:gender AS gender_type))
-    AND (:search IS NULL OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:category IS NULL OR i.category = :category)
+    AND (:gender IS NULL OR i.gender = :gender)
+    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
 
     AND NOT EXISTS (
         SELECT 1 FROM booking_items bi
@@ -57,14 +57,15 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     """,
     nativeQuery = true)
     Page<Item> findAvailableItems(
-        @Param("vendorId") Long vendorId,
-        @Param("fromDate") LocalDate fromDate,
-        @Param("toDate") LocalDate toDate,
-        @Param("category") String category,
-        @Param("gender") String gender,
-        @Param("search") String search,
-        Pageable pageable
-);
+            @Param("vendorId") Long vendorId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("category") String category,
+            @Param("gender") String gender,
+            @Param("search") String search,
+            Pageable pageable
+    );
+
 
     
     // For vendor management - filter items
@@ -75,7 +76,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     AND (:category IS NULL OR i.category = :category)
     AND (:gender IS NULL OR i.gender = :gender)
-    AND (:search IS NULL OR LOWER(i.name) LIKE LOWER(CONCAT('%', :search, '%')))
+    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
     """)
     Page<Item> findVendorItems(
         @Param("vendorId") Long vendorId,

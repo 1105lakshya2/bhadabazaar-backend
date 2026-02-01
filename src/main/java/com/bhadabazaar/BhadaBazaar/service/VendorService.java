@@ -1,6 +1,7 @@
 package com.bhadabazaar.BhadaBazaar.service;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
+import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,15 @@ public class VendorService {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         return mapToResponse(vendor);
+    }
+
+    public List<ItemCategory> getVendorCategories(String username) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+        return Arrays.stream(vendor.getCategories())
+            .map(ItemCategory::valueOf)
+            .toList();
     }
 
     public List<String> getAllCities() {
@@ -66,6 +77,12 @@ public class VendorService {
         return mapToResponse(vendor);
     }
 
+    private List<ItemCategory> mapCategories(Vendor vendor) {
+    return Arrays.stream(vendor.getCategories())
+            .map(ItemCategory::valueOf)
+            .toList();
+    }
+
     private PublicVendorResponse mapToPublicResponse(Vendor vendor) {
         return new PublicVendorResponse(
                 vendor.getId(),
@@ -78,7 +95,7 @@ public class VendorService {
                 vendor.getSecondaryPhone1(),
                 vendor.getSecondaryPhone2(),
                 vendor.getGenderServed(),
-                vendor.getCategories(),
+                mapCategories(vendor),
                 vendor.getStoreImageUrl()
         );
     }
@@ -95,7 +112,7 @@ public class VendorService {
                 vendor.getSecondaryPhone1(),
                 vendor.getSecondaryPhone2(),
                 vendor.getGenderServed(),
-                vendor.getCategories(),
+                mapCategories(vendor),
                 vendor.getStoreImageUrl(),
                 vendor.getStatus(),
                 vendor.getYearlyPrice(),

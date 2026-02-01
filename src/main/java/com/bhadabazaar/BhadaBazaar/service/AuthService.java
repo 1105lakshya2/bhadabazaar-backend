@@ -55,7 +55,12 @@ public class AuthService {
                 .secondaryPhone1(request.secondaryPhone1())
                 .secondaryPhone2(request.secondaryPhone2())
                 .genderServed(request.genderServed())
-                .categories(request.categories())
+                .categories(
+                            request.categories()
+                                   .stream()
+                                   .map(Enum::name)
+                                   .toArray(String[]::new)
+                            )
                 .status(VendorStatus.PENDING)
                 .yearlyPrice(BigDecimal.ZERO)
                 .subscriptionStartDate(LocalDate.now())

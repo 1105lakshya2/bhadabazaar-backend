@@ -62,6 +62,12 @@ public class PublicController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
+        if (search != null) {
+        search = search.trim();
+        if (search.isEmpty()) {
+            search = null;
+        }
+    }
         return ResponseEntity.ok(itemService.getAvailableItems(storeId, from, to, category, gender, search, PageRequest.of(page, pageSize)));
     }
 

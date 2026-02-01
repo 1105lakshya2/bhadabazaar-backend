@@ -41,6 +41,11 @@ public class VendorController {
     public ResponseEntity<VendorResponse> getStore(Authentication authentication) {
         return ResponseEntity.ok(vendorService.getVendorProfile(authentication.getName()));
     }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<ItemCategory>> getVendorCategories(Authentication authentication) {
+        return ResponseEntity.ok(vendorService.getVendorCategories(authentication.getName()));
+    }
     
     @GetMapping("/{vendorId}/items/search-by-code")
     public ResponseEntity<ItemResponse> getItemByCode(
@@ -72,6 +77,13 @@ public class VendorController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
+         // Normalize search
+    if (search != null) {
+        search = search.trim();
+        if (search.isEmpty()) {
+            search = null;
+        }
+    }
         return ResponseEntity.ok(itemService.getVendorItems(authentication.getName(), category, gender, search, PageRequest.of(page, pageSize)));
     }
 

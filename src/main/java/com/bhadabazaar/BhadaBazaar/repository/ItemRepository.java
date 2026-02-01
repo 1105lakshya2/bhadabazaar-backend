@@ -24,9 +24,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     AND i.is_active = true
     AND i.is_deleted = false
 
-    AND (:category IS NULL OR i.category = :category)
-    AND (:gender IS NULL OR i.gender = :gender)
-    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
+    AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
+    AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
+    AND (CAST(:search AS text) IS NULL OR i.name ILIKE CONCAT('%', CAST(:search AS text), '%'))
 
     AND NOT EXISTS (
         SELECT 1 FROM booking_items bi
@@ -43,9 +43,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     AND i.is_active = true
     AND i.is_deleted = false
 
-    AND (:category IS NULL OR i.category = :category)
-    AND (:gender IS NULL OR i.gender = :gender)
-    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
+    AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
+    AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
+    AND (CAST(:search AS text) IS NULL OR i.name ILIKE CONCAT('%', CAST(:search AS text), '%'))
 
     AND NOT EXISTS (
         SELECT 1 FROM booking_items bi
@@ -74,9 +74,12 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     WHERE i.vendor.id = :vendorId
     AND i.isDeleted = false
 
-    AND (:category IS NULL OR i.category = :category)
-    AND (:gender IS NULL OR i.gender = :gender)
-    AND (:search IS NULL OR i.name ILIKE CONCAT('%', :search, '%'))
+    AND (CAST(:category AS string) IS NULL OR i.category = :category)
+    AND (CAST(:gender AS string) IS NULL OR i.gender = :gender)
+    AND (
+        CAST(:search AS string) IS NULL OR 
+        LOWER(i.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+    )
     """)
     Page<Item> findVendorItems(
         @Param("vendorId") Long vendorId,

@@ -40,7 +40,7 @@ public class BookingService {
 
         LocalDate fromDate = request.fromDate();
         LocalDate toDate = request.toDate();
-        LocalDate storedToDate = toDate.plusDays(2);
+        LocalDate storedToDate = toDate.plusDays(1);
 
         List<Item> items = itemRepository.findAllById(request.itemIds());
         if (items.size() != request.itemIds().size()) {
@@ -75,6 +75,10 @@ public class BookingService {
         
         Booking savedBooking = bookingRepository.save(newBooking);
 
+        // Update vendor earnings with advance amount
+        vendor.setEarnings(vendor.getEarnings().add(request.advancePaid()));
+        vendorRepository.save(vendor);
+
         String itemNames = items.stream()
                 .map(Item::getName)
                 .collect(Collectors.joining(", "));
@@ -86,10 +90,10 @@ public class BookingService {
         return mapToResponse(savedBooking);
     }
 
-    public Page<BookingResponse> getVendorBookings(String username, BookingStatus status, LocalDate from, LocalDate to, Pageable pageable) {
+    public Page<BookingResponse> getVendorBookings(String username, BookingStatus status, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        return bookingRepository.findVendorBookings(vendor.getId(), status, from, to, pageable)
+        return bookingRepository.findVendorBookings(vendor.getId(), status, pageable)
                 .map(this::mapToResponse);
     }
 
@@ -97,7 +101,7 @@ public class BookingService {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         return bookingRepository
-        .findByVendorIdAndCustomerPhoneContainingIgnoreCase(vendor.getId(), phone)
+        .findByVendorIdAndStatusAndCustomerPhoneContainingIgnoreCase(vendor.getId(), BookingStatus.BOOKED, phone)
         .stream()
         .map(this::mapToResponse)
         .collect(Collectors.toList());
@@ -106,15 +110,14 @@ public class BookingService {
     public Page<BookingResponse> searchBookingsByDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        LocalDate datePlusTwo = date.plusDays(2);
-        return bookingRepository.findVendorBookingsByDate(vendor.getId(), date, datePlusTwo, pageable)
+        return bookingRepository.findByVendorIdAndStatusAndFromDate(vendor.getId(), BookingStatus.BOOKED, date, pageable)
                 .map(this::mapToResponse);
     }
 
     public Page<BookingResponse> searchReturnPendingBeforeDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        LocalDate deadlineWithBuffer = date.plusDays(2);
+        LocalDate deadlineWithBuffer = date.plusDays(1);
         return bookingRepository.findReturnPendingBeforeDate(vendor.getId(), deadlineWithBuffer, pageable)
                 .map(this::mapToResponse);
     }
@@ -123,7 +126,7 @@ public class BookingService {
     @Scheduled(cron = "0 0 2 * * *")
     public void moveBookingsToReturnPendingDaily() {
         LocalDate today = LocalDate.now();
-        LocalDate bufferedDate = today.plusDays(2);
+        LocalDate bufferedDate = today.plusDays(1);
         List<Booking> bookings = bookingRepository.findByStatusAndToDate(BookingStatus.BOOKED, bufferedDate);
         if (bookings.isEmpty()) {
             return;
@@ -138,12 +141,19 @@ public class BookingService {
     public void updateBookingStatus(Long bookingId, BookingStatus status) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
+        
+        if (status == BookingStatus.CLOSED && booking.getStatus() != BookingStatus.CLOSED) {
+            Vendor vendor = booking.getVendor();
+            vendor.setEarnings(vendor.getEarnings().add(booking.getRemainingAmount()));
+            vendorRepository.save(vendor);
+        }
+        
         booking.setStatus(status);
         bookingRepository.save(booking);
     }
 
     private BookingResponse mapToResponse(Booking booking) {
-        LocalDate displayToDate = booking.getToDate().minusDays(2);
+        LocalDate displayToDate = booking.getToDate().minusDays(1);
         return new BookingResponse(
                 booking.getId(),
                 booking.getCustomerName(),

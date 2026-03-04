@@ -64,6 +64,7 @@ public class AuthService {
                 .status(VendorStatus.PENDING)
                 .yearlyPrice(BigDecimal.ZERO)
                 .subscriptionStartDate(LocalDate.now())
+                .earnings(BigDecimal.ZERO)
                 .build();
         
         vendorRepository.save(vendor);

@@ -20,7 +20,7 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
     private static final Set<String> ALLOWED_EXT =
-        Set.of("jpg", "jpeg", "png", "webp");
+        Set.of("jpg", "jpeg", "png", "webp", "avif");
 
     public String uploadFile(MultipartFile file) {
         validateFileIsImage(file);

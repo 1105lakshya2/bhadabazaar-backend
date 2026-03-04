@@ -1,11 +1,15 @@
 package com.bhadabazaar.BhadaBazaar.service;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
+import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
+import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
+import com.bhadabazaar.BhadaBazaar.repository.BookingRepository;
+import com.bhadabazaar.BhadaBazaar.repository.ItemRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,9 +30,17 @@ public class VendorService {
     private final VendorRepository vendorRepository;
     private final CloudinaryService cloudinaryService;
     private final CloudflareTurnstileService turnstileService;
+    private final BookingRepository bookingRepository;
+    private final ItemRepository itemRepository;
 
     public VendorResponse getVendorProfile(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        return mapToResponse(vendor);
+    }
+
+    public VendorResponse getVendorProfile(Long storeId) {
+        Vendor vendor = vendorRepository.findById(storeId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         return mapToResponse(vendor);
     }
@@ -40,6 +52,31 @@ public class VendorService {
         return Arrays.stream(vendor.getCategories())
             .map(ItemCategory::valueOf)
             .toList();
+    }
+
+        public java.math.BigDecimal getEarnings(String username) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        return vendor.getEarnings();
+    }
+
+    public void resetEarnings(String username) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        vendor.setEarnings(java.math.BigDecimal.ZERO);
+        vendorRepository.save(vendor);
+    }
+
+    public VendorDashboardStats getVendorStats(String username) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        Long vendorId = vendor.getId();
+        
+        long bookings = bookingRepository.countByVendorIdAndStatus(vendorId, BookingStatus.BOOKED);
+        long returns = bookingRepository.countByVendorIdAndStatus(vendorId, BookingStatus.RETURN_PENDING);
+        long items = itemRepository.countByVendorIdAndIsDeletedFalse(vendorId);
+        
+        return new VendorDashboardStats(bookings, returns, items);
     }
 
     public List<String> getAllCities() {

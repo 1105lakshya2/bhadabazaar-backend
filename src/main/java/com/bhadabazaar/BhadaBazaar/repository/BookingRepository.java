@@ -15,27 +15,18 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @Query("SELECT b FROM Booking b WHERE b.vendor.id = :vendorId " +
-           "AND (:status IS NULL OR b.status = :status) " +
-           "AND (cast(:fromDate as date) IS NULL OR b.fromDate >= :fromDate) " +
-           "AND (cast(:toDate as date) IS NULL OR b.toDate <= :toDate)")
+    @Query("""
+    SELECT b FROM Booking b
+    WHERE b.vendor.id = :vendorId
+      AND b.status = :status
+    """)
     Page<Booking> findVendorBookings(
         @Param("vendorId") Long vendorId,
         @Param("status") BookingStatus status,
-        @Param("fromDate") LocalDate fromDate,
-        @Param("toDate") LocalDate toDate,
         Pageable pageable
     );
 
-    @Query("SELECT b FROM Booking b WHERE b.vendor.id = :vendorId " +
-           "AND b.fromDate <= :date " +
-           "AND b.toDate >= :datePlusTwo")
-    Page<Booking> findVendorBookingsByDate(
-        @Param("vendorId") Long vendorId,
-        @Param("date") LocalDate date,
-        @Param("datePlusTwo") LocalDate datePlusTwo,
-        Pageable pageable
-    );
+    Page<Booking> findByVendorIdAndStatusAndFromDate(Long vendorId, BookingStatus status, LocalDate fromDate, Pageable pageable);
 
     @Query("SELECT b FROM Booking b WHERE b.vendor.id = :vendorId " +
            "AND b.status = 'RETURN_PENDING' " +
@@ -46,7 +37,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         Pageable pageable
     );
 
-    List<Booking> findByVendorIdAndCustomerPhoneContainingIgnoreCase(Long vendorId, String customerPhone);
+    List<Booking> findByVendorIdAndStatusAndCustomerPhoneContainingIgnoreCase(Long vendorId, BookingStatus status, String customerPhone);
 
     List<Booking> findByStatusAndToDate(BookingStatus status, LocalDate toDate);
+
+    long countByVendorIdAndStatus(Long vendorId, BookingStatus status);
 }

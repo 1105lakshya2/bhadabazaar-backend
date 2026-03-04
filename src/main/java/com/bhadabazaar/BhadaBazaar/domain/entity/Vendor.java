@@ -78,6 +78,10 @@ public class Vendor {
     @Column(name = "yearly_price", nullable = false)
     private BigDecimal yearlyPrice;
 
+    @Column(name = "earnings", nullable = false, columnDefinition = "NUMERIC(12,2) DEFAULT 0")
+    @Builder.Default
+    private BigDecimal earnings = BigDecimal.ZERO;
+
     @Column(name = "subscription_start_date", nullable = false)
     private LocalDate subscriptionStartDate;
 

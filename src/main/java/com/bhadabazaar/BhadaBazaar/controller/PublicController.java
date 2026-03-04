@@ -5,6 +5,7 @@ import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
+import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
 import com.bhadabazaar.BhadaBazaar.service.VendorService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -46,7 +48,12 @@ public class PublicController {
         return ResponseEntity.ok(vendorService.getStoresByCity(city));
     }
 
-    @GetMapping("/categories")
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<VendorResponse> getStore(@PathVariable("storeId") Long storeId) {
+        return ResponseEntity.ok(vendorService.getVendorProfile(storeId));
+    }
+
+    @GetMapping("/signupCategories")
     public ResponseEntity<List<ItemCategory>> getCategories() {
         return ResponseEntity.ok(Arrays.asList(ItemCategory.values()));
     }

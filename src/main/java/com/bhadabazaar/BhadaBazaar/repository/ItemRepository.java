@@ -15,7 +15,7 @@ import java.util.List;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
-
+    boolean existsByName(String name);
     Page<Item> findByVendorId(Long vendorId, Pageable pageable);
 
     @Query(value = """
@@ -91,4 +91,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Query("SELECT i FROM Item i WHERE i.vendor.id = :vendorId AND i.itemCode = :itemCode AND i.isDeleted = false")
     java.util.Optional<Item> findByVendorIdAndItemCode(@Param("vendorId") Long vendorId, @Param("itemCode") String itemCode);
+
+    long countByVendorIdAndIsDeletedFalse(Long vendorId);
 }

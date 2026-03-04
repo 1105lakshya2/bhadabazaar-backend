@@ -1,5 +1,7 @@
 package com.bhadabazaar.BhadaBazaar.controller;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
@@ -9,6 +11,8 @@ import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
 import com.bhadabazaar.BhadaBazaar.dto.MessageResponse;
+import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
+import com.bhadabazaar.BhadaBazaar.dto.VendorEarnings;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.BookingService;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
@@ -24,8 +28,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/vendor")
@@ -40,6 +47,11 @@ public class VendorController {
     @GetMapping("/store")
     public ResponseEntity<VendorResponse> getStore(Authentication authentication) {
         return ResponseEntity.ok(vendorService.getVendorProfile(authentication.getName()));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<VendorDashboardStats> getVendorStats(Authentication authentication) {
+        return ResponseEntity.ok(vendorService.getVendorStats(authentication.getName()));
     }
 
     @GetMapping("/categories")
@@ -136,13 +148,16 @@ public class VendorController {
     @GetMapping("/bookings")
     public ResponseEntity<Page<BookingResponse>> getBookings(
             Authentication authentication,
-            @RequestParam(required = false) BookingStatus status,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = true) BookingStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        return ResponseEntity.ok(bookingService.getVendorBookings(authentication.getName(), status, from, to, PageRequest.of(page, pageSize)));
+        if(status == BookingStatus.BOOKED) {
+          Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending()); 
+          return ResponseEntity.ok(bookingService.getVendorBookings(authentication.getName(), status, pageable)); 
+        }
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
+        return ResponseEntity.ok(bookingService.getVendorBookings(authentication.getName(), status, pageable));
     }
 
     @GetMapping("/bookings/search-by-date")
@@ -152,7 +167,8 @@ public class VendorController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        return ResponseEntity.ok(bookingService.searchBookingsByDate(authentication.getName(), date, PageRequest.of(page, pageSize)));
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending());
+        return ResponseEntity.ok(bookingService.searchBookingsByDate(authentication.getName(), date, pageable));
     }
 
     @GetMapping("/bookings/return-pending-before")
@@ -162,7 +178,8 @@ public class VendorController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        return ResponseEntity.ok(bookingService.searchReturnPendingBeforeDate(authentication.getName(), date, PageRequest.of(page, pageSize)));
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
+        return ResponseEntity.ok(bookingService.searchReturnPendingBeforeDate(authentication.getName(), date, pageable));
     }
 
     @GetMapping("/bookings/search-by-phone")
@@ -202,14 +219,14 @@ public class VendorController {
     }
     
     @GetMapping("/earnings")
-    public ResponseEntity<MessageResponse> getEarnings() {
-        // Placeholder
-        return ResponseEntity.ok(new MessageResponse("Earnings placeholder"));
+    public ResponseEntity<VendorEarnings> getEarnings(Authentication authentication) {
+        BigDecimal totalEarnings = vendorService.getEarnings(authentication.getName());
+        return ResponseEntity.ok(new VendorEarnings(totalEarnings));
     }
     
     @PostMapping("/earnings/reset")
-    public ResponseEntity<MessageResponse> resetEarnings() {
-        // Placeholder
-        return ResponseEntity.ok(new MessageResponse("Earnings reset placeholder"));
+    public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication) {
+        vendorService.resetEarnings(authentication.getName());
+        return ResponseEntity.ok(new MessageResponse("Earnings reset successfully"));
     }
 }

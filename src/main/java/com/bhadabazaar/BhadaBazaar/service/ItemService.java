@@ -46,6 +46,10 @@ public class ItemService {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
+        if (itemRepository.existsByName(request.name())) {
+            throw new IllegalArgumentException("Item already Exists");
+        }
+
         Item item = Item.builder()
                 .vendor(vendor)
                 .itemCode(request.itemCode())
@@ -64,7 +68,8 @@ public class ItemService {
     public ItemResponse updateItem(Long itemId, ItemCreateRequest request) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
-        
+
+        item.setItemCode(request.itemCode());
         item.setName(request.name());
         item.setCategory(request.category());
         item.setGender(request.gender());

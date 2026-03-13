@@ -13,7 +13,7 @@ import com.bhadabazaar.BhadaBazaar.repository.ItemRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import org.springframework.web.multipart.MultipartFile;
-import com.bhadabazaar.BhadaBazaar.service.CloudinaryService;
+import com.bhadabazaar.BhadaBazaar.service.CloudflareImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class VendorService {
 
     private final VendorRepository vendorRepository;
-    private final CloudinaryService cloudinaryService;
+    private final CloudflareImageService cloudinaryService;
     private final CloudflareTurnstileService turnstileService;
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
@@ -107,7 +107,7 @@ public class VendorService {
             cloudinaryService.deleteFile(vendor.getStoreImagePublicId());
         }
         
-        java.util.Map<String, String> upload = cloudinaryService.uploadFileWithPublicId(file);
+        java.util.Map<String, String> upload = cloudinaryService.uploadFile(file);
         vendor.setStoreImageUrl(upload.get("url"));
         vendor.setStoreImagePublicId(upload.get("public_id"));
         vendorRepository.save(vendor);

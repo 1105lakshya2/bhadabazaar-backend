@@ -127,12 +127,6 @@ public class VendorController {
         return ResponseEntity.ok(new MessageResponse("Images uploaded successfully"));
     }
 
-    @PostMapping("/items/{itemId}/images/{imageId}")
-    @PreAuthorize("hasRole('ROLE_VENDOR')")
-    public ResponseEntity<ItemImageResponse> updateItemImage(@PathVariable Long itemId, @PathVariable Long imageId, @RequestParam("file") MultipartFile file) {
-        ItemImageResponse updatedImage = itemService.updateItemImage(itemId, imageId, file);
-        return ResponseEntity.ok(updatedImage);
-    }
 
     @DeleteMapping("/items/{itemId}/images/{imageId}")
     public ResponseEntity<MessageResponse> deleteImage(@PathVariable Long itemId, @PathVariable Long imageId) {

@@ -36,7 +36,7 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final VendorRepository vendorRepository;
     private final ItemImageRepository itemImageRepository;
-    private final CloudinaryService cloudinaryService;
+    private final CloudflareImageService cloudinaryService;
 
     @Value("${spring.servlet.multipart.location:uploads}")
     private String uploadDir;
@@ -118,7 +118,7 @@ public class ItemService {
             if (existing.getImagePublicId() != null) {
                 cloudinaryService.deleteFile(existing.getImagePublicId());
             }
-            java.util.Map<String, String> upload = cloudinaryService.uploadFileWithPublicId(files.get(i));
+            java.util.Map<String, String> upload = cloudinaryService.uploadFile(files.get(i));
             existing.setImageUrl(upload.get("url"));
             existing.setImagePublicId(upload.get("public_id"));
         }
@@ -135,7 +135,7 @@ public class ItemService {
             }
         } else if (newCount > existingCount) {
             for (int i = existingCount; i < newCount; i++) {
-                java.util.Map<String, String> upload = cloudinaryService.uploadFileWithPublicId(files.get(i));
+                java.util.Map<String, String> upload = cloudinaryService.uploadFile(files.get(i));
                 ItemImage image = ItemImage.builder()
                         .item(item)
                         .imageUrl(upload.get("url"))
@@ -195,25 +195,6 @@ public class ItemService {
         Item item = itemRepository.findByVendorIdAndItemCode(vendorId, itemCode)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
         return mapToResponse(item);
-    }
-
-    public ItemImageResponse updateItemImage(Long itemId, Long imageId, MultipartFile file) {
-        ItemImage itemImage = itemImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found"));
-
-        if (!itemImage.getItem().getId().equals(itemId)) {
-            throw new RuntimeException("Image does not belong to the specified item");
-        }
-
-        if (itemImage.getImagePublicId() != null) {
-            cloudinaryService.deleteFile(itemImage.getImagePublicId());
-        }
-        java.util.Map<String, String> upload = cloudinaryService.uploadFileWithPublicId(file);
-        itemImage.setImageUrl(upload.get("url"));
-        itemImage.setImagePublicId(upload.get("public_id"));
-        itemImage = itemImageRepository.save(itemImage);
-
-        return new ItemImageResponse(itemImage.getId(), itemImage.getImageUrl(), itemImage.getImageType());
     }
 
     private ItemResponse mapToResponse(Item item) {

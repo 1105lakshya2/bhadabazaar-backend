@@ -25,6 +25,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(request -> {
+            var config = new org.springframework.web.cors.CorsConfiguration();
+            config.addAllowedOrigin("*");
+            config.addAllowedMethod("*");
+            config.addAllowedHeader("*");
+            return config;
+            }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/api/v1/auth/**",
@@ -46,3 +53,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

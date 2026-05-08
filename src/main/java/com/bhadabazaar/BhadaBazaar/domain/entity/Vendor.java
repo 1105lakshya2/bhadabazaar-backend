@@ -61,9 +61,9 @@ public class Vendor {
     @Column(name = "gender_served", nullable = false)
     private GenderType genderServed;
     
-    @Convert(converter = StringArrayConverter.class)
+    @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "categories", columnDefinition = "text[]", nullable = false)
-    private String[] categories;
+    private List<String> categories;
 
     @Column(name = "store_image_url")
     private String storeImageUrl;

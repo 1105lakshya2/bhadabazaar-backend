@@ -46,12 +46,10 @@ public class VendorService {
     }
 
     public List<ItemCategory> getVendorCategories(String username) {
-        Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+    Vendor vendor = vendorRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
-        return Arrays.stream(vendor.getCategories())
-            .map(ItemCategory::valueOf)
-            .toList();
+    return mapCategories(vendor); // Reuse the helper method to keep it DRY
     }
 
         public java.math.BigDecimal getEarnings(String username) {
@@ -115,7 +113,10 @@ public class VendorService {
     }
 
     private List<ItemCategory> mapCategories(Vendor vendor) {
-    return Arrays.stream(vendor.getCategories())
+    if (vendor.getCategories() == null) {
+        return List.of();
+    }
+    return vendor.getCategories().stream()
             .map(ItemCategory::valueOf)
             .toList();
     }

@@ -59,7 +59,7 @@ public class AuthService {
                             request.categories()
                                    .stream()
                                    .map(Enum::name)
-                                   .toArray(String[]::new)
+                                   .toList()
                             )
                 .status(VendorStatus.PENDING)
                 .yearlyPrice(BigDecimal.ZERO)

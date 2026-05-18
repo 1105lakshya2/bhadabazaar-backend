@@ -65,17 +65,19 @@ public class PublicController {
             @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String gender,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String searchByName,
+            @RequestParam(required = false) String searchByID,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        if (search != null) {
-        search = search.trim();
-        if (search.isEmpty()) {
-            search = null;
+        if (searchByName != null) {
+        searchByName = searchByName.trim();
+        if (searchByName.isEmpty()) {
+            searchByName = null;
         }
+        searchByID = null;
     }
-        return ResponseEntity.ok(itemService.getAvailableItems(storeId, from, to, category, gender, search, PageRequest.of(page, pageSize)));
+        return ResponseEntity.ok(itemService.getAvailableItems(storeId, from, to, category, gender, searchByName, searchByID, PageRequest.of(page, pageSize)));
     }
 
     @GetMapping("/items/{itemId}")

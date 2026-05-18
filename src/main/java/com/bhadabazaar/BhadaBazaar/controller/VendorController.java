@@ -85,18 +85,25 @@ public class VendorController {
             Authentication authentication,
             @RequestParam(required = false) ItemCategory category,
             @RequestParam(required = false) ItemGenderType gender,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String searchByName,
+            @RequestParam(required = false) String searchByID,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
          // Normalize search
-    if (search != null) {
-        search = search.trim();
-        if (search.isEmpty()) {
-            search = null;
+    if (searchByName != null) {
+        searchByName = searchByName.trim();
+        if (searchByName.isEmpty()) {
+            searchByName = null;
         }
     }
-        return ResponseEntity.ok(itemService.getVendorItems(authentication.getName(), category, gender, search, PageRequest.of(page, pageSize)));
+    if (searchByID != null) {
+        searchByID = searchByID.trim();
+        if (searchByID.isEmpty()) {
+            searchByID = null;
+        }
+    }
+        return ResponseEntity.ok(itemService.getVendorItems(authentication.getName(), category, gender,searchByName, searchByID, PageRequest.of(page, pageSize)));
     }
 
     @PostMapping("/items")
@@ -203,13 +210,27 @@ public class VendorController {
             @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String gender,
-            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String searchByName,
+            @RequestParam(required = false) String searchByID,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
          // Need vendor ID from auth.
+    if (searchByName != null) {
+        searchByName = searchByName.trim();
+        if (searchByName.isEmpty()) {
+            searchByName = null;
+        }
+    }
+
+    if (searchByID != null) {
+        searchByID = searchByID.trim();
+        if (searchByID.isEmpty()) {
+            searchByID = null;
+        }
+    }
          VendorResponse vendor = vendorService.getVendorProfile(authentication.getName());
-         return ResponseEntity.ok(itemService.getAvailableItems(vendor.id(), from, to, category, gender, search, PageRequest.of(page, pageSize)));
+         return ResponseEntity.ok(itemService.getAvailableItems(vendor.id(), from, to, category, gender, searchByName,searchByID, PageRequest.of(page, pageSize)));
     }
     
     @GetMapping("/earnings")

@@ -170,18 +170,18 @@ public class ItemService {
         itemImageRepository.delete(image);
     }
 
-    public Page<ItemResponse> getVendorItems(String username, ItemCategory category, ItemGenderType gender, String search, Pageable pageable) {
+    public Page<ItemResponse> getVendorItems(String username, ItemCategory category, ItemGenderType gender, String searchByName, String searchByID, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        return itemRepository.findVendorItems(vendor.getId(), category, gender, search, pageable)
+        return itemRepository.findVendorItems(vendor.getId(), category, gender, searchByName, searchByID, pageable)
                 .map(this::mapToResponse);
     }
 
-    public Page<ItemResponse> getAvailableItems(Long vendorId, LocalDate from, LocalDate to, String categoryStr, String genderStr, String search, Pageable pageable) {
+    public Page<ItemResponse> getAvailableItems(Long vendorId, LocalDate from, LocalDate to, String categoryStr, String genderStr, String searchByName, String searchByID, Pageable pageable) {
          // Convert strings to Enums if necessary or pass as is if Repo expects String/Enum
          // Repo expects String for flexibility in native query or I can convert.
          // Native query parameters are Strings.
-         return itemRepository.findAvailableItems(vendorId, from, to, categoryStr, genderStr, search, pageable)
+         return itemRepository.findAvailableItems(vendorId, from, to, categoryStr, genderStr, searchByName,searchByID, pageable)
                  .map(this::mapToResponse);
     }
     

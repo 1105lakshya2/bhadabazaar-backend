@@ -123,21 +123,6 @@ public class BookingService {
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 2 * * *")
-    public void moveBookingsToReturnPendingDaily() {
-        LocalDate today = LocalDate.now();
-        LocalDate bufferedDate = today.plusDays(1);
-        List<Booking> bookings = bookingRepository.findByStatusAndToDate(BookingStatus.BOOKED, bufferedDate);
-        if (bookings.isEmpty()) {
-            return;
-        }
-        for (Booking booking : bookings) {
-            booking.setStatus(BookingStatus.RETURN_PENDING);
-        }
-        bookingRepository.saveAll(bookings);
-    }
-
-    @Transactional
     public void updateBookingStatus(Long bookingId, BookingStatus status) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));

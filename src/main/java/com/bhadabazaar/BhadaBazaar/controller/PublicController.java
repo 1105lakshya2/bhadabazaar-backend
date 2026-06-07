@@ -4,6 +4,7 @@ import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
+import com.bhadabazaar.BhadaBazaar.dto.StateWithCitiesResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
@@ -32,6 +33,11 @@ public class PublicController {
     @GetMapping("/cities")
     public ResponseEntity<List<String>> getCities() {
         return ResponseEntity.ok(vendorService.getAllCities());
+    }
+
+    @GetMapping("/states")
+    public ResponseEntity<List<StateWithCitiesResponse>> getStates() {
+        return ResponseEntity.ok(vendorService.getStatesWithCities());
     }
 
     @GetMapping("/stores/search")

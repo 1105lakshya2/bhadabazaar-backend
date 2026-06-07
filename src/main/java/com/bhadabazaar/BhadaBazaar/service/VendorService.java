@@ -5,6 +5,7 @@ import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
+import com.bhadabazaar.BhadaBazaar.dto.StateWithCitiesResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
@@ -19,8 +20,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,6 +83,19 @@ public class VendorService {
 
     public List<String> getAllCities() {
         return vendorRepository.findAllCities();
+    }
+
+    public List<StateWithCitiesResponse> getStatesWithCities() {
+        List<Object[]> rows = vendorRepository.findAllStatesWithCities();
+        Map<String, List<String>> stateMap = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String state = (String) row[0];
+            String city = (String) row[1];
+            stateMap.computeIfAbsent(state, k -> new ArrayList<>()).add(city);
+        }
+        return stateMap.entrySet().stream()
+                .map(e -> new StateWithCitiesResponse(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
     }
 
     public List<StoreSearchResponse> searchStores(String query) {

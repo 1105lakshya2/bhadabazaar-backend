@@ -22,6 +22,7 @@ com\bhadabazaar\BhadaBazaar\service\VendorService.class
 com\bhadabazaar\BhadaBazaar\domain\entity\Booking.class
 com\bhadabazaar\BhadaBazaar\service\BookingService.class
 com\bhadabazaar\BhadaBazaar\dto\LoginRequest.class
+com\bhadabazaar\BhadaBazaar\dto\StateWithCitiesResponse.class
 com\bhadabazaar\BhadaBazaar\dto\VendorDashboardStats.class
 com\bhadabazaar\BhadaBazaar\domain\entity\BookingItem$BookingItemBuilder.class
 com\bhadabazaar\BhadaBazaar\service\CloudflareImageService.class

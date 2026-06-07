@@ -23,6 +23,9 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
 
     @Query("SELECT DISTINCT v.city FROM Vendor v WHERE v.status = 'APPROVED'")
     List<String> findAllCities();
+
+    @Query("SELECT DISTINCT v.state, v.city FROM Vendor v WHERE v.status = 'APPROVED' AND v.state IS NOT NULL ORDER BY v.state, v.city")
+    List<Object[]> findAllStatesWithCities();
     
     @Query("SELECT v FROM Vendor v WHERE v.status = 'APPROVED' AND  LOWER(v.shopName) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Vendor> searchVendorsList(String query);

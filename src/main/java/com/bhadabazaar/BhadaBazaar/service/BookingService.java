@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,16 +41,50 @@ public class BookingService {
 
         LocalDate fromDate = request.fromDate();
         LocalDate toDate = request.toDate();
+        if (fromDate == null || toDate == null) {
+            throw new IllegalArgumentException("Booking dates are required");
+        }
+        if (fromDate.isAfter(toDate)) {
+            throw new IllegalArgumentException("fromDate must not be after toDate");
+        }
         LocalDate storedToDate = toDate.plusDays(1);
+
+        if (request.itemIds() == null || request.itemIds().isEmpty()) {
+            throw new IllegalArgumentException("At least one item is required");
+        }
 
         List<Item> items = itemRepository.findAllById(request.itemIds());
         if (items.size() != request.itemIds().size()) {
             throw new RuntimeException("Some items not found");
         }
+        // Every booked item must belong to the calling vendor
+        boolean allOwned = items.stream()
+                .allMatch(item -> item.getVendor().getId().equals(vendor.getId()));
+        if (!allOwned) {
+            throw new RuntimeException("Some items not found");
+        }
 
-        BigDecimal calculatedTotal = request.totalAmount();
-        
-        BigDecimal remaining = calculatedTotal.subtract(request.advancePaid()).subtract(request.discount());
+        // Server computes the authoritative total from item prices, never trusting the client.
+        long days = ChronoUnit.DAYS.between(fromDate, toDate);
+        BigDecimal calculatedTotal = items.stream()
+                .map(Item::getPricePerDay)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .multiply(BigDecimal.valueOf(days));
+
+        BigDecimal discount = request.discount() != null ? request.discount() : BigDecimal.ZERO;
+        BigDecimal advancePaid = request.advancePaid() != null ? request.advancePaid() : BigDecimal.ZERO;
+
+        if (discount.signum() < 0 || advancePaid.signum() < 0) {
+            throw new IllegalArgumentException("Discount and advance paid must not be negative");
+        }
+        if (discount.compareTo(calculatedTotal) > 0) {
+            throw new IllegalArgumentException("Discount cannot exceed total amount");
+        }
+        if (advancePaid.compareTo(calculatedTotal.subtract(discount)) > 0) {
+            throw new IllegalArgumentException("Advance paid cannot exceed amount due");
+        }
+
+        BigDecimal remaining = calculatedTotal.subtract(discount).subtract(advancePaid);
 
         Booking newBooking = Booking.builder()
                 .vendor(vendor)
@@ -58,8 +93,8 @@ public class BookingService {
                 .fromDate(fromDate)
                 .toDate(storedToDate)
                 .totalPrice(calculatedTotal)
-                .discount(request.discount())
-                .advancePaid(request.advancePaid())
+                .discount(discount)
+                .advancePaid(advancePaid)
                 .remainingAmount(remaining)
                 .status(BookingStatus.BOOKED)
                 .build();
@@ -76,7 +111,7 @@ public class BookingService {
         Booking savedBooking = bookingRepository.save(newBooking);
 
         // Update vendor earnings with advance amount
-        vendor.setEarnings(vendor.getEarnings().add(request.advancePaid()));
+        vendor.setEarnings(vendor.getEarnings().add(advancePaid));
         vendorRepository.save(vendor);
 
         String itemNames = items.stream()
@@ -84,7 +119,7 @@ public class BookingService {
                 .collect(Collectors.joining(", "));
         String message = String.format(
                 "Hello %s, your booking (ID: %d) at %s is confirmed from %s to %s.\nItems: %s\nRemaining Amount: %s and Advance Given: %s",
-                request.customerName(), savedBooking.getId(), vendor.getShopName(), fromDate, toDate, itemNames, remaining, request.advancePaid());
+                request.customerName(), savedBooking.getId(), vendor.getShopName(), fromDate, toDate, itemNames, remaining, advancePaid);
         whatsAppService.sendBookingNotification(request.customerPhone(), message);
         
         return mapToResponse(savedBooking);

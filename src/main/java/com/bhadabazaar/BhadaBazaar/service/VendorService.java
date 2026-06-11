@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,6 +80,14 @@ public class VendorService {
 
     public List<String> getAllCities() {
         return vendorRepository.findAllCities();
+    }
+
+    public Map<String, List<String>> getStatesCitiesMap() {
+        return vendorRepository.findDistinctStateCityPairs().stream()
+                .collect(Collectors.groupingBy(
+                        row -> (String) row[0],
+                        Collectors.mapping(row -> (String) row[1], Collectors.toList())
+                ));
     }
 
     public List<StoreSearchResponse> searchStores(String query) {

@@ -10,6 +10,7 @@ public record VendorSignupRequest(
     String vendorName,
     String shopName,
     String city,
+    String state,
     String address,
     String primaryPhone,
     String secondaryPhone1,

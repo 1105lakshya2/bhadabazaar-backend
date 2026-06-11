@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -32,6 +33,11 @@ public class PublicController {
     @GetMapping("/cities")
     public ResponseEntity<List<String>> getCities() {
         return ResponseEntity.ok(vendorService.getAllCities());
+    }
+
+    @GetMapping("/states")
+    public ResponseEntity<Map<String, List<String>>> getStatesCities() {
+        return ResponseEntity.ok(vendorService.getStatesCitiesMap());
     }
 
     @GetMapping("/stores/search")

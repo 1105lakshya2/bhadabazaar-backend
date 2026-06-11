@@ -50,6 +50,7 @@ public class AuthService {
                 .vendorName(request.vendorName())
                 .shopName(request.shopName())
                 .city(request.city())
+                .state(request.state())
                 .address(request.address())
                 .primaryPhone(request.primaryPhone())
                 .secondaryPhone1(request.secondaryPhone1())

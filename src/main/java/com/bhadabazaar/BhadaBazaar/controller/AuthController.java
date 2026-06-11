@@ -33,6 +33,10 @@ public class AuthController {
     
     @PostMapping("/logout")
     public ResponseEntity<MessageResponse> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            authService.logout(authHeader.substring(7));
+        }
         return ResponseEntity.ok(new MessageResponse("Logout successful"));
     }
 }

@@ -53,7 +53,9 @@ public class BookingService {
             throw new IllegalArgumentException("At least one item is required");
         }
 
-        List<Item> items = itemRepository.findAllById(request.itemIds());
+        // Lock the item rows FOR UPDATE so concurrent bookings for the same item serialize;
+        // this makes the availability check below atomic with the insert.
+        List<Item> items = itemRepository.findAllByIdForUpdate(request.itemIds());
         if (items.size() != request.itemIds().size()) {
             throw new RuntimeException("Some items not found");
         }
@@ -62,6 +64,18 @@ public class BookingService {
                 .allMatch(item -> item.getVendor().getId().equals(vendor.getId()));
         if (!allOwned) {
             throw new RuntimeException("Some items not found");
+        }
+
+        // With the item rows locked, no concurrent booking can slip in between this check and the
+        // insert: a competing transaction blocks on the lock until we commit, then sees our booking.
+        List<Long> conflicts = bookingRepository.findConflictingItemIds(
+                request.itemIds(),
+                List.of(BookingStatus.BOOKED, BookingStatus.RETURN_PENDING),
+                fromDate,
+                toDate);
+        if (!conflicts.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "One or more items are already booked for the selected dates");
         }
 
         // Server computes the authoritative total from item prices, never trusting the client.

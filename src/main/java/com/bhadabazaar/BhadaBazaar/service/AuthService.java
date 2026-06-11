@@ -8,6 +8,7 @@ import com.bhadabazaar.BhadaBazaar.dto.VendorSignupRequest;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import com.bhadabazaar.BhadaBazaar.security.JwtService;
+import com.bhadabazaar.BhadaBazaar.security.TokenBlacklistService;
 import com.bhadabazaar.BhadaBazaar.exception.AuthException;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final CloudflareTurnstileService turnstileService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public void signup(VendorSignupRequest request) {
         if (!turnstileService.verifyToken(request.turnstileToken(), null)) {
@@ -104,5 +106,20 @@ public class AuthService {
 
         return new AuthResponse(token);
 }
+
+    /**
+     * Revokes the given token so it can no longer authenticate, even though it has not yet expired.
+     * A malformed/already-invalid token is simply ignored.
+     */
+    public void logout(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        try {
+            tokenBlacklistService.blacklist(token, jwtService.extractExpiration(token));
+        } catch (Exception ignored) {
+            // Token could not be parsed (malformed/expired) — nothing meaningful to revoke.
+        }
+    }
 
 }

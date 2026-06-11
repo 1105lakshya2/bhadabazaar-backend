@@ -3,9 +3,11 @@ package com.bhadabazaar.BhadaBazaar.repository;
 import com.bhadabazaar.BhadaBazaar.domain.entity.Item;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -101,6 +103,14 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     java.util.Optional<Item> findByVendorIdAndItemCode(@Param("vendorId") Long vendorId, @Param("itemCode") String itemCode);
 
     java.util.Optional<Item> findByIdAndVendorId(Long id, Long vendorId);
+
+    /**
+     * Locks the given item rows FOR UPDATE so concurrent bookings for the same item serialize.
+     * Ordered by id to ensure a consistent lock acquisition order and avoid deadlocks.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Item i WHERE i.id IN :ids ORDER BY i.id")
+    List<Item> findAllByIdForUpdate(@Param("ids") List<Long> ids);
 
     long countByVendorIdAndIsDeletedFalse(Long vendorId);
 }

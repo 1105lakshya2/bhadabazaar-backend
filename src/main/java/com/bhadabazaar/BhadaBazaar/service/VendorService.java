@@ -1,23 +1,28 @@
 package com.bhadabazaar.BhadaBazaar.service;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
+import com.bhadabazaar.BhadaBazaar.domain.entity.VendorEarningsReset;
 import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
+import com.bhadabazaar.BhadaBazaar.dto.EarningsResetResponse;
 import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.repository.BookingRepository;
 import com.bhadabazaar.BhadaBazaar.repository.ItemRepository;
+import com.bhadabazaar.BhadaBazaar.repository.VendorEarningsResetRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import org.springframework.web.multipart.MultipartFile;
 import com.bhadabazaar.BhadaBazaar.service.CloudflareImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Arrays;
@@ -33,6 +38,7 @@ public class VendorService {
     private final CloudflareTurnstileService turnstileService;
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
+    private final VendorEarningsResetRepository vendorEarningsResetRepository;
 
     public VendorResponse getVendorProfile(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
@@ -59,11 +65,31 @@ public class VendorService {
         return vendor.getEarnings();
     }
 
+    @Transactional
     public void resetEarnings(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+        // Snapshot the balance being cleared so the financial history survives the reset.
+        VendorEarningsReset snapshot = VendorEarningsReset.builder()
+                .vendor(vendor)
+                .amount(vendor.getEarnings())
+                .build();
+        vendorEarningsResetRepository.save(snapshot);
+
         vendor.setEarnings(java.math.BigDecimal.ZERO);
         vendorRepository.save(vendor);
+    }
+
+    /** Returns the most recent earnings resets for the vendor (newest first), capped at 50. */
+    public List<EarningsResetResponse> getEarningsResetHistory(String username) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        return vendorEarningsResetRepository
+                .findByVendorIdOrderByResetAtDesc(vendor.getId(), PageRequest.of(0, 50))
+                .stream()
+                .map(r -> new EarningsResetResponse(r.getId(), r.getAmount(), r.getResetAt()))
+                .collect(Collectors.toList());
     }
 
     public VendorDashboardStats getVendorStats(String username) {

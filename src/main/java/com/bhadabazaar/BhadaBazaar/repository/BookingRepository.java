@@ -43,5 +43,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     java.util.Optional<Booking> findByIdAndVendorId(Long id, Long vendorId);
 
+    /**
+     * Returns the ids of any of the given items that are already booked over a range overlapping
+     * [fromDate, toDate]. Uses the same overlap semantics as the availability listing query
+     * (b.toDate is the stored exclusive end, i.e. user toDate + 1).
+     */
+    @Query("""
+    SELECT DISTINCT bi.item.id FROM BookingItem bi
+    WHERE bi.item.id IN :itemIds
+      AND bi.booking.status IN :statuses
+      AND bi.booking.fromDate <= :toDate
+      AND bi.booking.toDate >= :fromDate
+    """)
+    List<Long> findConflictingItemIds(
+        @Param("itemIds") List<Long> itemIds,
+        @Param("statuses") List<BookingStatus> statuses,
+        @Param("fromDate") LocalDate fromDate,
+        @Param("toDate") LocalDate toDate
+    );
+
     long countByVendorIdAndStatus(Long vendorId, BookingStatus status);
 }

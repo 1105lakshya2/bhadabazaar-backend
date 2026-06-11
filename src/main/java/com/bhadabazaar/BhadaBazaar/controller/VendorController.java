@@ -6,6 +6,7 @@ import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
 import com.bhadabazaar.BhadaBazaar.dto.BookingCreateRequest;
+import com.bhadabazaar.BhadaBazaar.dto.EarningsResetResponse;
 import com.bhadabazaar.BhadaBazaar.dto.BookingResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
@@ -242,5 +243,10 @@ public class VendorController {
     public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication) {
         vendorService.resetEarnings(authentication.getName());
         return ResponseEntity.ok(new MessageResponse("Earnings reset successfully"));
+    }
+
+    @GetMapping("/earnings/resets")
+    public ResponseEntity<List<EarningsResetResponse>> getEarningsResets(Authentication authentication) {
+        return ResponseEntity.ok(vendorService.getEarningsResetHistory(authentication.getName()));
     }
 }

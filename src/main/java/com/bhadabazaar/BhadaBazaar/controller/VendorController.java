@@ -112,32 +112,31 @@ public class VendorController {
     }
 
     @GetMapping("/items/{itemId}")
-    public ResponseEntity<ItemResponse> getItemDetails(@PathVariable Long itemId) {
-        // Should verify ownership, but for now just getting details
-        return ResponseEntity.ok(itemService.getItemDetails(itemId));
+    public ResponseEntity<ItemResponse> getItemDetails(Authentication authentication, @PathVariable Long itemId) {
+        return ResponseEntity.ok(itemService.getVendorItemDetails(authentication.getName(), itemId));
     }
 
     @PutMapping("/items/{itemId}")
-    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long itemId, @RequestBody ItemCreateRequest request) {
-        return ResponseEntity.ok(itemService.updateItem(itemId, request));
+    public ResponseEntity<ItemResponse> updateItem(Authentication authentication, @PathVariable Long itemId, @RequestBody ItemCreateRequest request) {
+        return ResponseEntity.ok(itemService.updateItem(authentication.getName(), itemId, request));
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<MessageResponse> deleteItem(@PathVariable Long itemId) {
-        itemService.deleteItem(itemId);
+    public ResponseEntity<MessageResponse> deleteItem(Authentication authentication, @PathVariable Long itemId) {
+        itemService.deleteItem(authentication.getName(), itemId);
         return ResponseEntity.ok(new MessageResponse("Item deleted successfully"));
     }
 
     @PostMapping("/items/{itemId}/images")
-    public ResponseEntity<MessageResponse> uploadImages(@PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
-        itemService.uploadImages(itemId, files);
+    public ResponseEntity<MessageResponse> uploadImages(Authentication authentication, @PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
+        itemService.uploadImages(authentication.getName(), itemId, files);
         return ResponseEntity.ok(new MessageResponse("Images uploaded successfully"));
     }
 
 
     @DeleteMapping("/items/{itemId}/images/{imageId}")
-    public ResponseEntity<MessageResponse> deleteImage(@PathVariable Long itemId, @PathVariable Long imageId) {
-        itemService.deleteImage(itemId, imageId);
+    public ResponseEntity<MessageResponse> deleteImage(Authentication authentication, @PathVariable Long itemId, @PathVariable Long imageId) {
+        itemService.deleteImage(authentication.getName(), itemId, imageId);
         return ResponseEntity.ok(new MessageResponse("Image deleted successfully"));
     }
 
@@ -192,14 +191,14 @@ public class VendorController {
     }
 
     @PatchMapping("/bookings/{bookingId}/return")
-    public ResponseEntity<MessageResponse> markReturnPending(@PathVariable Long bookingId) {
-        bookingService.updateBookingStatus(bookingId, BookingStatus.RETURN_PENDING);
+    public ResponseEntity<MessageResponse> markReturnPending(Authentication authentication, @PathVariable Long bookingId) {
+        bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.RETURN_PENDING);
         return ResponseEntity.ok(new MessageResponse("Booking marked as return pending"));
     }
 
     @PatchMapping("/bookings/{bookingId}/close")
-    public ResponseEntity<MessageResponse> closeBooking(@PathVariable Long bookingId) {
-        bookingService.updateBookingStatus(bookingId, BookingStatus.CLOSED);
+    public ResponseEntity<MessageResponse> closeBooking(Authentication authentication, @PathVariable Long bookingId) {
+        bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.CLOSED);
         return ResponseEntity.ok(new MessageResponse("Booking closed successfully"));
     }
     

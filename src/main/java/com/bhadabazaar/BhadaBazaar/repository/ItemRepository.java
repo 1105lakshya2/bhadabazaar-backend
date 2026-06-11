@@ -100,5 +100,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Query("SELECT i FROM Item i WHERE i.vendor.id = :vendorId AND i.itemCode = :itemCode AND i.isDeleted = false")
     java.util.Optional<Item> findByVendorIdAndItemCode(@Param("vendorId") Long vendorId, @Param("itemCode") String itemCode);
 
+    java.util.Optional<Item> findByIdAndVendorId(Long id, Long vendorId);
+
     long countByVendorIdAndIsDeletedFalse(Long vendorId);
 }

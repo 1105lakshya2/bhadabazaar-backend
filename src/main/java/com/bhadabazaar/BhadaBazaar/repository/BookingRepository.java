@@ -41,5 +41,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByStatusAndToDate(BookingStatus status, LocalDate toDate);
 
+    java.util.Optional<Booking> findByIdAndVendorId(Long id, Long vendorId);
+
     long countByVendorIdAndStatus(Long vendorId, BookingStatus status);
 }

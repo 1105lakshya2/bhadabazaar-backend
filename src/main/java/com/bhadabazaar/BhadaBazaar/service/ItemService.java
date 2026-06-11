@@ -65,9 +65,8 @@ public class ItemService {
     }
 
     @Transactional
-    public ItemResponse updateItem(Long itemId, ItemCreateRequest request) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+    public ItemResponse updateItem(String username, Long itemId, ItemCreateRequest request) {
+        Item item = findOwnedItem(username, itemId);
 
         item.setItemCode(request.itemCode());
         item.setName(request.name());
@@ -83,9 +82,8 @@ public class ItemService {
     }
 
     @Transactional
-    public void deleteItem(Long itemId) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+    public void deleteItem(String username, Long itemId) {
+        Item item = findOwnedItem(username, itemId);
         for (ItemImage img : item.getImages()) {
             if (img.getImagePublicId() != null) {
                 cloudinaryService.deleteFile(img.getImagePublicId());
@@ -97,9 +95,8 @@ public class ItemService {
     }
 
     @Transactional
-    public void uploadImages(Long itemId, java.util.List<MultipartFile> files) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+    public void uploadImages(String username, Long itemId, java.util.List<MultipartFile> files) {
+        Item item = findOwnedItem(username, itemId);
 
         if (files == null || files.isEmpty() || files.size() > 4) {
             throw new IllegalArgumentException("Number of images must be between 1 and 4");
@@ -158,10 +155,11 @@ public class ItemService {
     }
     
     @Transactional
-    public void deleteImage(Long itemId, Long imageId) {
+    public void deleteImage(String username, Long itemId, Long imageId) {
+        Item item = findOwnedItem(username, itemId);
         ItemImage image = itemImageRepository.findById(imageId)
                 .orElseThrow(() -> new RuntimeException("Image not found"));
-        if (!image.getItem().getId().equals(itemId)) {
+        if (!image.getItem().getId().equals(item.getId())) {
              throw new RuntimeException("Image does not belong to item");
         }
         if (image.getImagePublicId() != null) {
@@ -189,6 +187,17 @@ public class ItemService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
         return mapToResponse(item);
+    }
+
+    public ItemResponse getVendorItemDetails(String username, Long itemId) {
+        return mapToResponse(findOwnedItem(username, itemId));
+    }
+
+    private Item findOwnedItem(String username, Long itemId) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        return itemRepository.findByIdAndVendorId(itemId, vendor.getId())
+                .orElseThrow(() -> new RuntimeException("Item not found"));
     }
     
     public ItemResponse getItemByCodeForVendor(Long vendorId, String itemCode) {

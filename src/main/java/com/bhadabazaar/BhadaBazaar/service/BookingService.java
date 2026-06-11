@@ -138,12 +138,13 @@ public class BookingService {
     }
 
     @Transactional
-    public void updateBookingStatus(Long bookingId, BookingStatus status) {
-        Booking booking = bookingRepository.findById(bookingId)
+    public void updateBookingStatus(String username, Long bookingId, BookingStatus status) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        Booking booking = bookingRepository.findByIdAndVendorId(bookingId, vendor.getId())
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
-        
+
         if (status == BookingStatus.CLOSED && booking.getStatus() != BookingStatus.CLOSED) {
-            Vendor vendor = booking.getVendor();
             vendor.setEarnings(vendor.getEarnings().add(booking.getRemainingAmount()));
             vendorRepository.save(vendor);
         }

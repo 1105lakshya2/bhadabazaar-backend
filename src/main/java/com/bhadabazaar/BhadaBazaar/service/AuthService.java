@@ -12,6 +12,7 @@ import com.bhadabazaar.BhadaBazaar.security.TokenBlacklistService;
 import com.bhadabazaar.BhadaBazaar.exception.AuthException;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -69,8 +70,20 @@ public class AuthService {
                 .subscriptionStartDate(LocalDate.now())
                 .earnings(BigDecimal.ZERO)
                 .build();
-        
-        vendorRepository.save(vendor);
+
+        try {
+            vendorRepository.save(vendor);
+        } catch (DataIntegrityViolationException ex) {
+            // Two near-simultaneous signups can both clear the existsBy* checks above; the unique
+            // constraints are the real guard. Translate the loser's violation into a clean message.
+            if (vendorRepository.existsByPrimaryPhone(request.primaryPhone())) {
+                throw new IllegalArgumentException("Phone number already exist");
+            }
+            if (vendorRepository.existsByUsername(request.username())) {
+                throw new IllegalArgumentException("Username already taken");
+            }
+            throw ex;
+        }
     }
 
     public AuthResponse login(LoginRequest request) {

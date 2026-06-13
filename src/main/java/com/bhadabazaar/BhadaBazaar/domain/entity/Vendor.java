@@ -2,6 +2,7 @@ package com.bhadabazaar.BhadaBazaar.domain.entity;
 
 import com.bhadabazaar.BhadaBazaar.domain.enums.GenderType;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
+import com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -83,6 +84,11 @@ public class Vendor {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VendorStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_tier", nullable = false)
+    @Builder.Default
+    private SubscriptionTier subscriptionTier = SubscriptionTier.FREE;
 
     @Column(name = "yearly_price", nullable = false)
     private BigDecimal yearlyPrice;

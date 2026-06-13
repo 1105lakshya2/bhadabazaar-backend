@@ -66,6 +66,9 @@ public class AuthService {
                                    .toList()
                             )
                 .status(VendorStatus.PENDING)
+                .subscriptionTier(request.subscriptionTier() != null
+                        ? request.subscriptionTier()
+                        : com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier.FREE)
                 .yearlyPrice(BigDecimal.ZERO)
                 .subscriptionStartDate(LocalDate.now())
                 .earnings(BigDecimal.ZERO)

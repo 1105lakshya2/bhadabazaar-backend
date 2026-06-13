@@ -2,6 +2,7 @@ package com.bhadabazaar.BhadaBazaar.dto;
 
 import com.bhadabazaar.BhadaBazaar.domain.enums.GenderType;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
+import com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -54,6 +55,9 @@ public record VendorSignupRequest(
 
     @NotEmpty(message = "At least one category is required")
     List<ItemCategory> categories,
+
+    // Optional; defaults to FREE when omitted (handled in AuthService).
+    SubscriptionTier subscriptionTier,
 
     @NotBlank(message = "Turnstile token is required")
     String turnstileToken

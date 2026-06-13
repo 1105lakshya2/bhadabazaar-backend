@@ -6,6 +6,7 @@ import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemImageType;
+import com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier;
 import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
@@ -46,6 +47,17 @@ public class ItemService {
     public ItemResponse createItem(String username, ItemCreateRequest request) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
+
+        // Enforce the vendor's subscription item cap (counts only live, non-deleted items).
+        SubscriptionTier tier = vendor.getSubscriptionTier();
+        if (!tier.isUnlimited()) {
+            long currentCount = itemRepository.countByVendorIdAndIsDeletedFalse(vendor.getId());
+            if (currentCount >= tier.getMaxItems()) {
+                throw new IllegalArgumentException(
+                        "Item limit reached for your " + tier + " plan (max " + tier.getMaxItems()
+                                + " items). Upgrade your plan to add more.");
+            }
+        }
 
         // item_code must be unique within this vendor's active items (names are not unique).
         if (itemRepository.existsByVendorIdAndItemCodeAndIsDeletedFalse(vendor.getId(), request.itemCode())) {
@@ -206,7 +218,7 @@ public class ItemService {
     
     @Transactional(readOnly = true)
     public ItemResponse getItemDetails(Long itemId) {
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
         return mapToResponse(item);
     }

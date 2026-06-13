@@ -107,6 +107,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     java.util.Optional<Item> findByIdAndVendorId(Long id, Long vendorId);
 
+    // Public lookup: only items that are live (not soft-deleted) and active are individually visible.
+    java.util.Optional<Item> findByIdAndIsDeletedFalseAndIsActiveTrue(Long id);
+
     /**
      * Locks the given item rows FOR UPDATE so concurrent bookings for the same item serialize.
      * Ordered by id to ensure a consistent lock acquisition order and avoid deadlocks.

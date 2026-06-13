@@ -14,6 +14,7 @@ import com.bhadabazaar.BhadaBazaar.repository.ItemRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,8 +47,9 @@ public class ItemService {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
-        if (itemRepository.existsByName(request.name())) {
-            throw new IllegalArgumentException("Item already Exists");
+        // item_code must be unique within this vendor's active items (names are not unique).
+        if (itemRepository.existsByVendorIdAndItemCodeAndIsDeletedFalse(vendor.getId(), request.itemCode())) {
+            throw new IllegalArgumentException("Item code already exists");
         }
 
         Item item = Item.builder()
@@ -60,13 +62,26 @@ public class ItemService {
                 .isActive(request.isActive() != null ? request.isActive() : true)
                 .build();
 
-        item = itemRepository.save(item);
+        try {
+            item = itemRepository.saveAndFlush(item);
+        } catch (DataIntegrityViolationException ex) {
+            // Two concurrent creates can both pass the check above; the partial unique index is the
+            // real guard. Translate the loser's violation into a clean message.
+            throw new IllegalArgumentException("Item code already exists");
+        }
         return mapToResponse(item);
     }
 
     @Transactional
     public ItemResponse updateItem(String username, Long itemId, ItemCreateRequest request) {
         Item item = findOwnedItem(username, itemId);
+
+        // Reject a code that collides with another active item of the same vendor (the item's own
+        // current code is fine).
+        if (itemRepository.existsByVendorIdAndItemCodeAndIsDeletedFalseAndIdNot(
+                item.getVendor().getId(), request.itemCode(), item.getId())) {
+            throw new IllegalArgumentException("Item code already exists");
+        }
 
         item.setItemCode(request.itemCode());
         item.setName(request.name());
@@ -77,7 +92,11 @@ public class ItemService {
             item.setIsActive(request.isActive());
         }
 
-        item = itemRepository.save(item);
+        try {
+            item = itemRepository.saveAndFlush(item);
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalArgumentException("Item code already exists");
+        }
         return mapToResponse(item);
     }
 
@@ -168,6 +187,7 @@ public class ItemService {
         itemImageRepository.delete(image);
     }
 
+    @Transactional(readOnly = true)
     public Page<ItemResponse> getVendorItems(String username, ItemCategory category, ItemGenderType gender, String searchByName, String searchByID, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -175,6 +195,7 @@ public class ItemService {
                 .map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<ItemResponse> getAvailableItems(Long vendorId, LocalDate from, LocalDate to, String categoryStr, String genderStr, String searchByName, String searchByID, Pageable pageable) {
          // Convert strings to Enums if necessary or pass as is if Repo expects String/Enum
          // Repo expects String for flexibility in native query or I can convert.
@@ -183,12 +204,14 @@ public class ItemService {
                  .map(this::mapToResponse);
     }
     
+    @Transactional(readOnly = true)
     public ItemResponse getItemDetails(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
         return mapToResponse(item);
     }
 
+    @Transactional(readOnly = true)
     public ItemResponse getVendorItemDetails(String username, Long itemId) {
         return mapToResponse(findOwnedItem(username, itemId));
     }
@@ -200,6 +223,7 @@ public class ItemService {
                 .orElseThrow(() -> new RuntimeException("Item not found"));
     }
     
+    @Transactional(readOnly = true)
     public ItemResponse getItemByCodeForVendor(Long vendorId, String itemCode) {
         Item item = itemRepository.findByVendorIdAndItemCode(vendorId, itemCode)
                 .orElseThrow(() -> new RuntimeException("Item not found"));

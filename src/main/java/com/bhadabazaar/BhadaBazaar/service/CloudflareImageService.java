@@ -31,7 +31,7 @@ public class CloudflareImageService {
     @Value("${cloudflare.image-delivery-url}")
     private String deliveryUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     private static final Set<String> ALLOWED_EXT =
             Set.of("jpg", "jpeg", "png", "webp", "avif");

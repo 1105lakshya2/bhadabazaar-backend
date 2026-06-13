@@ -6,6 +6,7 @@ import com.bhadabazaar.BhadaBazaar.dto.LoginRequest;
 import com.bhadabazaar.BhadaBazaar.dto.VendorSignupRequest;
 import com.bhadabazaar.BhadaBazaar.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +22,12 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<MessageResponse> signup(@RequestBody VendorSignupRequest request) {
+    public ResponseEntity<MessageResponse> signup(@Valid @RequestBody VendorSignupRequest request) {
         authService.signup(request);
         return ResponseEntity.ok(new MessageResponse("Registration successful. You will be contacted for verification."));
     }

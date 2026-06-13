@@ -14,13 +14,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // Intercept every API path; the interceptor itself picks the right bucket (auth / vendor /
+        // upload / general). Matching broadly here means a new endpoint can never be silently left
+        // unprotected, and keeps this list from drifting out of sync with the controllers.
         registry.addInterceptor(rateLimitingInterceptor)
-                .addPathPatterns(
-                        "/api/v1/auth/**",
-                        "/api/v1/cities/**",
-                        "/api/v1/stores/**",
-                        "/api/v1/categories",
-                        "/api/v1/items/**"
-                );
+                .addPathPatterns("/api/v1/**");
     }
 }

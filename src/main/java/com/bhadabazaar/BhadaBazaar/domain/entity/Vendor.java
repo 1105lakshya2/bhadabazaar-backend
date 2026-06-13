@@ -20,7 +20,9 @@ import org.hibernate.type.SqlTypes;
 import com.bhadabazaar.BhadaBazaar.domain.converter.StringArrayConverter;
 
 @Entity
-@Table(name = "vendors")
+@Table(name = "vendors", uniqueConstraints = {
+    @UniqueConstraint(name = "idx_vendors_username", columnNames = "username")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,6 +32,10 @@ public class Vendor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Optimistic-locking guard against concurrent modification of this vendor row. */
+    @Version
+    private Long version;
 
     @Column(unique = true, nullable = false)
     private String username;

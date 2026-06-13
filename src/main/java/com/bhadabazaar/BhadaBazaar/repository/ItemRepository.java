@@ -17,8 +17,11 @@ import java.util.List;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
-    boolean existsByName(String name);
     Page<Item> findByVendorId(Long vendorId, Pageable pageable);
+
+    // item_code uniqueness is per-vendor and ignores soft-deleted items (a deleted item frees its code).
+    boolean existsByVendorIdAndItemCodeAndIsDeletedFalse(Long vendorId, String itemCode);
+    boolean existsByVendorIdAndItemCodeAndIsDeletedFalseAndIdNot(Long vendorId, String itemCode, Long id);
 
     @Query(value = """
     SELECT i.* FROM items i

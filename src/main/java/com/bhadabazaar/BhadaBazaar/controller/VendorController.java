@@ -18,7 +18,11 @@ import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.BookingService;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
 import com.bhadabazaar.BhadaBazaar.service.VendorService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -39,6 +43,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/vendor")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('VENDOR')")
+@Validated
 public class VendorController {
 
     private final VendorService vendorService;
@@ -88,8 +93,8 @@ public class VendorController {
             @RequestParam(required = false) ItemGenderType gender,
             @RequestParam(required = false) String searchByName,
             @RequestParam(required = false) String searchByID,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
          // Normalize search
     if (searchByName != null) {
@@ -108,7 +113,7 @@ public class VendorController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<ItemResponse> createItem(Authentication authentication, @RequestBody ItemCreateRequest request) {
+    public ResponseEntity<ItemResponse> createItem(Authentication authentication, @Valid @RequestBody ItemCreateRequest request) {
         return ResponseEntity.ok(itemService.createItem(authentication.getName(), request));
     }
 
@@ -118,7 +123,7 @@ public class VendorController {
     }
 
     @PutMapping("/items/{itemId}")
-    public ResponseEntity<ItemResponse> updateItem(Authentication authentication, @PathVariable Long itemId, @RequestBody ItemCreateRequest request) {
+    public ResponseEntity<ItemResponse> updateItem(Authentication authentication, @PathVariable Long itemId, @Valid @RequestBody ItemCreateRequest request) {
         return ResponseEntity.ok(itemService.updateItem(authentication.getName(), itemId, request));
     }
 
@@ -142,7 +147,7 @@ public class VendorController {
     }
 
     @PostMapping("/bookings")
-    public ResponseEntity<BookingResponse> createBooking(Authentication authentication, @RequestBody BookingCreateRequest request) {
+    public ResponseEntity<BookingResponse> createBooking(Authentication authentication, @Valid @RequestBody BookingCreateRequest request) {
         return ResponseEntity.ok(bookingService.createBooking(authentication.getName(), request));
     }
 
@@ -150,8 +155,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> getBookings(
             Authentication authentication,
             @RequestParam(required = true) BookingStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         if(status == BookingStatus.BOOKED) {
           Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending()); 
@@ -165,8 +170,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchBookingsByDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending());
         return ResponseEntity.ok(bookingService.searchBookingsByDate(authentication.getName(), date, pageable));
@@ -176,8 +181,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchReturnPendingBeforeDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
         return ResponseEntity.ok(bookingService.searchReturnPendingBeforeDate(authentication.getName(), date, pageable));
@@ -212,8 +217,8 @@ public class VendorController {
             @RequestParam(required = false) String gender,
             @RequestParam(required = false) String searchByName,
             @RequestParam(required = false) String searchByID,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
          // Need vendor ID from auth.
     if (searchByName != null) {

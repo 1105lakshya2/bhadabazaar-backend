@@ -124,9 +124,8 @@ public class BookingService {
         
         Booking savedBooking = bookingRepository.save(newBooking);
 
-        // Update vendor earnings with advance amount
-        vendor.setEarnings(vendor.getEarnings().add(advancePaid));
-        vendorRepository.save(vendor);
+        // Atomic increment so two concurrent bookings for this vendor can't lose an advance update.
+        vendorRepository.addEarnings(vendor.getId(), advancePaid);
 
         String itemNames = items.stream()
                 .map(Item::getName)
@@ -139,6 +138,7 @@ public class BookingService {
         return mapToResponse(savedBooking);
     }
 
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getVendorBookings(String username, BookingStatus status, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -146,6 +146,7 @@ public class BookingService {
                 .map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
     public List<BookingResponse> searchBookingsByPhone(String username, String phone) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -156,6 +157,7 @@ public class BookingService {
         .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookingsByDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
@@ -163,27 +165,13 @@ public class BookingService {
                 .map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<BookingResponse> searchReturnPendingBeforeDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         LocalDate deadlineWithBuffer = date.plusDays(1);
         return bookingRepository.findReturnPendingBeforeDate(vendor.getId(), deadlineWithBuffer, pageable)
                 .map(this::mapToResponse);
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 0 2 * * *")
-    public void moveBookingsToReturnPendingDaily() {
-        LocalDate today = LocalDate.now();
-        LocalDate bufferedDate = today.plusDays(1);
-        List<Booking> bookings = bookingRepository.findByStatusAndToDate(BookingStatus.BOOKED, bufferedDate);
-        if (bookings.isEmpty()) {
-            return;
-        }
-        for (Booking booking : bookings) {
-            booking.setStatus(BookingStatus.RETURN_PENDING);
-        }
-        bookingRepository.saveAll(bookings);
     }
 
     @Transactional
@@ -194,10 +182,12 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
 
         if (status == BookingStatus.CLOSED && booking.getStatus() != BookingStatus.CLOSED) {
-            vendor.setEarnings(vendor.getEarnings().add(booking.getRemainingAmount()));
-            vendorRepository.save(vendor);
+            // Atomic increment; @Version on Booking guards against two concurrent closes both
+            // reaching here — the loser's flush fails with an optimistic-lock error and this whole
+            // transaction (including this increment) rolls back, so remainingAmount is added once.
+            vendorRepository.addEarnings(vendor.getId(), booking.getRemainingAmount());
         }
-        
+
         booking.setStatus(status);
         bookingRepository.save(booking);
     }

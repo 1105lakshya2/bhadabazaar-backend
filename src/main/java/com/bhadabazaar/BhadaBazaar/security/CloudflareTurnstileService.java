@@ -1,5 +1,6 @@
 package com.bhadabazaar.BhadaBazaar.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class CloudflareTurnstileService {
 
     @Value("${cloudflare.turnstile.secret-key}")
@@ -21,7 +23,7 @@ public class CloudflareTurnstileService {
     @Value("${cloudflare.turnstile.url}")
     private String verifyUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     public boolean verifyToken(String token, String remoteIp) {
 

@@ -94,6 +94,30 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid token");
         }
 
+        // Pre-auth status handling. SUSPENDED/DELETED are excluded by userDetailsService, so standard
+        // authentication would just fail — handle them explicitly here (and revert a deletion when the
+        // vendor logs back in within the grace window) before authenticating.
+        Vendor pending = vendorRepository.findByUsername(request.username()).orElse(null);
+        if (pending != null) {
+            if (pending.getStatus() == VendorStatus.SUSPENDED) {
+                throw new AuthException("Account is suspended");
+            }
+            if (pending.getStatus() == VendorStatus.DELETED) {
+                boolean withinGrace = pending.getDeletionRequestedAt() != null
+                        && pending.getDeletionRequestedAt().isAfter(java.time.LocalDateTime.now().minusDays(1));
+                if (!withinGrace) {
+                    throw new AuthException("Account has been deleted");
+                }
+                if (!passwordEncoder.matches(request.password(), pending.getPasswordHash())) {
+                    throw new AuthException("Invalid credentials");
+                }
+                // Correct password within the window: cancel the deletion and let login proceed.
+                pending.setStatus(VendorStatus.APPROVED);
+                pending.setDeletionRequestedAt(null);
+                vendorRepository.save(pending);
+            }
+        }
+
         try {
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(

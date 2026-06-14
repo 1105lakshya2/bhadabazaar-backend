@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
+import com.bhadabazaar.BhadaBazaar.dto.AccountDeleteRequest;
 import com.bhadabazaar.BhadaBazaar.dto.BookingCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.EarningsResetResponse;
 import com.bhadabazaar.BhadaBazaar.dto.BookingResponse;
@@ -253,5 +254,13 @@ public class VendorController {
     @GetMapping("/earnings/resets")
     public ResponseEntity<List<EarningsResetResponse>> getEarningsResets(Authentication authentication) {
         return ResponseEntity.ok(vendorService.getEarningsResetHistory(authentication.getName()));
+    }
+
+    @PostMapping("/account/delete")
+    public ResponseEntity<MessageResponse> deleteAccount(Authentication authentication, @Valid @RequestBody AccountDeleteRequest request) {
+        vendorService.requestAccountDeletion(authentication.getName(), request.password());
+        return ResponseEntity.ok(new MessageResponse(
+                "Account deletion requested. Your account will be permanently deleted in 24 hours. "
+                        + "Log in again within this window to cancel the deletion."));
     }
 }

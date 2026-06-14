@@ -5,6 +5,7 @@ import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -63,4 +64,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     long countByVendorIdAndStatus(Long vendorId, BookingStatus status);
+
+    // Used by the hard-delete (account purge) flow. Delete booking_items first (see BookingItemRepository).
+    @Modifying
+    @Query("DELETE FROM Booking b WHERE b.vendor.id = :vendorId")
+    void deleteByVendorId(@Param("vendorId") Long vendorId);
 }

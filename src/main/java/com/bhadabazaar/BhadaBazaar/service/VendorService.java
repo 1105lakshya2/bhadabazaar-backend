@@ -10,19 +10,26 @@ import com.bhadabazaar.BhadaBazaar.dto.PublicVendorResponse;
 import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
+import com.bhadabazaar.BhadaBazaar.repository.BookingItemRepository;
 import com.bhadabazaar.BhadaBazaar.repository.BookingRepository;
+import com.bhadabazaar.BhadaBazaar.repository.ItemImageRepository;
 import com.bhadabazaar.BhadaBazaar.repository.ItemRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorEarningsResetRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
+import com.bhadabazaar.BhadaBazaar.exception.AuthException;
 import org.springframework.web.multipart.MultipartFile;
 import com.bhadabazaar.BhadaBazaar.service.CloudflareImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Arrays;
@@ -37,8 +44,11 @@ public class VendorService {
     private final CloudflareImageService cloudinaryService;
     private final CloudflareTurnstileService turnstileService;
     private final BookingRepository bookingRepository;
+    private final BookingItemRepository bookingItemRepository;
     private final ItemRepository itemRepository;
+    private final ItemImageRepository itemImageRepository;
     private final VendorEarningsResetRepository vendorEarningsResetRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public VendorResponse getVendorProfile(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
@@ -49,6 +59,10 @@ public class VendorService {
     public VendorResponse getVendorProfile(Long storeId) {
         Vendor vendor = vendorRepository.findById(storeId)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        // Hide suspended and pending-deletion stores from the public store page.
+        if (vendor.getStatus() == VendorStatus.SUSPENDED || vendor.getStatus() == VendorStatus.DELETED) {
+            throw new RuntimeException("Vendor not found");
+        }
         return mapToResponse(vendor);
     }
 
@@ -90,6 +104,61 @@ public class VendorService {
                 .stream()
                 .map(r -> new EarningsResetResponse(r.getId(), r.getAmount(), r.getResetAt()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Requests account deletion. Password-protected: only succeeds with the vendor's correct
+     * password. Sets status to DELETED, which immediately disables the account (existing JWTs stop
+     * working), and starts a 24h grace window. Logging back in within the window cancels it;
+     * otherwise {@link #finalizeExpiredDeletions()} hard-deletes the account.
+     */
+    @Transactional
+    public void requestAccountDeletion(String username, String rawPassword) {
+        Vendor vendor = vendorRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        if (!passwordEncoder.matches(rawPassword, vendor.getPasswordHash())) {
+            throw new AuthException("Incorrect password");
+        }
+        vendor.setStatus(VendorStatus.DELETED);
+        vendor.setDeletionRequestedAt(LocalDateTime.now());
+        vendorRepository.save(vendor);
+    }
+
+    /**
+     * Hard-deletes accounts whose deletion grace window has elapsed: every trace of the vendor is
+     * purged (Cloudflare images, then DB rows for images, booking items, bookings, items, earnings
+     * resets, and finally the vendor) so nothing about them is retained. Runs once daily at 03:00.
+     */
+    @Transactional
+    @Scheduled(cron = "0 0 3 * * *")
+    public void finalizeExpiredDeletions() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(1);
+        List<Vendor> expired = vendorRepository.findByStatusAndDeletionRequestedAtBefore(
+                VendorStatus.DELETED, cutoff);
+        for (Vendor vendor : expired) {
+            hardDeleteVendor(vendor);
+        }
+    }
+
+    /** Permanently removes a vendor and all associated data, including remote Cloudflare images. */
+    private void hardDeleteVendor(Vendor vendor) {
+        Long vendorId = vendor.getId();
+
+        // 1. Remote cleanup: delete every Cloudflare image owned by this vendor.
+        for (String publicId : itemImageRepository.findImagePublicIdsByVendorId(vendorId)) {
+            cloudinaryService.deleteFile(publicId);
+        }
+        if (vendor.getStoreImagePublicId() != null) {
+            cloudinaryService.deleteFile(vendor.getStoreImagePublicId());
+        }
+
+        // 2. DB purge in FK-safe order (children before parents).
+        bookingItemRepository.deleteByVendorId(vendorId);
+        itemImageRepository.deleteByVendorId(vendorId);
+        bookingRepository.deleteByVendorId(vendorId);
+        itemRepository.deleteByVendorId(vendorId);
+        vendorEarningsResetRepository.deleteByVendorId(vendorId);
+        vendorRepository.delete(vendor);
     }
 
     public VendorDashboardStats getVendorStats(String username) {

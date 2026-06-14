@@ -100,6 +100,10 @@ public class Vendor {
     @Column(name = "subscription_start_date", nullable = false)
     private LocalDate subscriptionStartDate;
 
+    /** Set when the vendor requests account deletion (status becomes DELETED); null otherwise. */
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 

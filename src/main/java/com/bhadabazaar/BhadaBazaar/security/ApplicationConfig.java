@@ -1,5 +1,7 @@
 package com.bhadabazaar.BhadaBazaar.security;
 
+import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
+import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,13 +24,21 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> vendorRepository.findByUsername(username)
-                .map(vendor -> User.builder()
-                        .username(vendor.getUsername())
-                        .password(vendor.getPasswordHash())
-                        .roles("VENDOR")
-                        .build())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return username -> {
+            Vendor vendor = vendorRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            // SUSPENDED/DELETED accounts must not authenticate — this also invalidates any
+            // still-unexpired JWT they hold, since the filter resolves users through here.
+            if (vendor.getStatus() == VendorStatus.SUSPENDED
+                    || vendor.getStatus() == VendorStatus.DELETED) {
+                throw new UsernameNotFoundException("User not available");
+            }
+            return User.builder()
+                    .username(vendor.getUsername())
+                    .password(vendor.getPasswordHash())
+                    .roles("VENDOR")
+                    .build();
+        };
     }
 
     @Bean

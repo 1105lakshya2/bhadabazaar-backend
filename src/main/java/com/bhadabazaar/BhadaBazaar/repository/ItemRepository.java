@@ -28,6 +28,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     WHERE i.vendor_id = :vendorId
     AND i.is_active = true
     AND i.is_deleted = false
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id = i.vendor_id AND v.status = 'APPROVED')
 
     AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
     AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
@@ -48,6 +49,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     WHERE i.vendor_id = :vendorId
     AND i.is_active = true
     AND i.is_deleted = false
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id = i.vendor_id AND v.status = 'APPROVED')
 
     AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
     AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
@@ -119,4 +121,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     List<Item> findAllByIdForUpdate(@Param("ids") List<Long> ids);
 
     long countByVendorIdAndIsDeletedFalse(Long vendorId);
+
+    // Used by the hard-delete (account purge) flow. Delete item_images first (see ItemImageRepository).
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Item i WHERE i.vendor.id = :vendorId")
+    void deleteByVendorId(@Param("vendorId") Long vendorId);
 }

@@ -20,8 +20,14 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
     boolean existsByUsername(String username);
     boolean existsByPrimaryPhone(String primaryPhone);
 
+    // Drives the scheduled finalize job: deletion requests whose grace window has elapsed.
+    List<Vendor> findByStatusAndDeletionRequestedAtBefore(
+            com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus status,
+            java.time.LocalDateTime cutoff);
+
     Page<Vendor> findByCity(String city, Pageable pageable);
-    
+
+    // Public listings already filter to APPROVED, which excludes SUSPENDED and DELETED vendors.
     List<Vendor> findByCityAndStatus(String city, com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus status);
 
     @Query("SELECT DISTINCT v.city FROM Vendor v WHERE v.status = 'APPROVED'")
@@ -29,7 +35,7 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
 
     @Query("SELECT DISTINCT v.state, v.city FROM Vendor v WHERE v.status = 'APPROVED'")
     List<Object[]> findDistinctStateCityPairs();
-    
+
     @Query("SELECT v FROM Vendor v WHERE v.status = 'APPROVED' AND  LOWER(v.shopName) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Vendor> searchVendorsList(String query);
 

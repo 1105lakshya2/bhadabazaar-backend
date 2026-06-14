@@ -13,6 +13,7 @@ import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
 import com.bhadabazaar.BhadaBazaar.dto.MessageResponse;
+import com.bhadabazaar.BhadaBazaar.dto.PasswordConfirmRequest;
 import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorEarnings;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
@@ -239,21 +240,21 @@ public class VendorController {
          return ResponseEntity.ok(itemService.getAvailableItems(vendor.id(), from, to, category, gender, searchByName,searchByID, PageRequest.of(page, pageSize)));
     }
     
-    @GetMapping("/earnings")
-    public ResponseEntity<VendorEarnings> getEarnings(Authentication authentication) {
-        BigDecimal totalEarnings = vendorService.getEarnings(authentication.getName());
+    @PostMapping("/earnings")
+    public ResponseEntity<VendorEarnings> getEarnings(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        BigDecimal totalEarnings = vendorService.getEarnings(authentication.getName(), request.password());
         return ResponseEntity.ok(new VendorEarnings(totalEarnings));
     }
-    
+
     @PostMapping("/earnings/reset")
-    public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication) {
-        vendorService.resetEarnings(authentication.getName());
+    public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        vendorService.resetEarnings(authentication.getName(), request.password());
         return ResponseEntity.ok(new MessageResponse("Earnings reset successfully"));
     }
 
-    @GetMapping("/earnings/resets")
-    public ResponseEntity<List<EarningsResetResponse>> getEarningsResets(Authentication authentication) {
-        return ResponseEntity.ok(vendorService.getEarningsResetHistory(authentication.getName()));
+    @PostMapping("/earnings/resets")
+    public ResponseEntity<List<EarningsResetResponse>> getEarningsResets(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        return ResponseEntity.ok(vendorService.getEarningsResetHistory(authentication.getName(), request.password()));
     }
 
     @PostMapping("/account/delete")

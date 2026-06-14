@@ -73,16 +73,24 @@ public class VendorService {
     return mapCategories(vendor); // Reuse the helper method to keep it DRY
     }
 
-        public java.math.BigDecimal getEarnings(String username) {
+    /** Verifies the vendor's password before returning the vendor; used by sensitive earnings reads/writes. */
+    private Vendor verifyPassword(String username, String rawPassword) {
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
+        if (!passwordEncoder.matches(rawPassword, vendor.getPasswordHash())) {
+            throw new AuthException("Incorrect password");
+        }
+        return vendor;
+    }
+
+    public java.math.BigDecimal getEarnings(String username, String rawPassword) {
+        Vendor vendor = verifyPassword(username, rawPassword);
         return vendor.getEarnings();
     }
 
     @Transactional
-    public void resetEarnings(String username) {
-        Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+    public void resetEarnings(String username, String rawPassword) {
+        Vendor vendor = verifyPassword(username, rawPassword);
 
         // Snapshot the balance being cleared so the financial history survives the reset.
         VendorEarningsReset snapshot = VendorEarningsReset.builder()
@@ -96,9 +104,8 @@ public class VendorService {
     }
 
     /** Returns the most recent earnings resets for the vendor (newest first), capped at 50. */
-    public List<EarningsResetResponse> getEarningsResetHistory(String username) {
-        Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+    public List<EarningsResetResponse> getEarningsResetHistory(String username, String rawPassword) {
+        Vendor vendor = verifyPassword(username, rawPassword);
         return vendorEarningsResetRepository
                 .findByVendorIdOrderByResetAtDesc(vendor.getId(), PageRequest.of(0, 50))
                 .stream()

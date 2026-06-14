@@ -1,5 +1,6 @@
 package com.bhadabazaar.BhadaBazaar.controller;
 
+import com.bhadabazaar.BhadaBazaar.dto.AdminLoginRequest;
 import com.bhadabazaar.BhadaBazaar.dto.AuthResponse;
 import com.bhadabazaar.BhadaBazaar.dto.MessageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.LoginRequest;
@@ -24,6 +25,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/admin/login")
+    public ResponseEntity<AuthResponse> adminLogin(@Valid @RequestBody AdminLoginRequest request) {
+        return ResponseEntity.ok(authService.adminLogin(request));
     }
 
     @PostMapping("/signup")

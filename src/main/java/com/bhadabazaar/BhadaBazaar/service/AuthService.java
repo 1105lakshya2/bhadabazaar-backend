@@ -2,6 +2,7 @@ package com.bhadabazaar.BhadaBazaar.service;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
+import com.bhadabazaar.BhadaBazaar.dto.AdminLoginRequest;
 import com.bhadabazaar.BhadaBazaar.dto.AuthResponse;
 import com.bhadabazaar.BhadaBazaar.dto.LoginRequest;
 import com.bhadabazaar.BhadaBazaar.dto.VendorSignupRequest;
@@ -16,7 +17,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,9 +38,16 @@ public class AuthService {
     private final CloudflareTurnstileService turnstileService;
     private final TokenBlacklistService tokenBlacklistService;
 
+    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    private String adminUsername;
+
     public void signup(VendorSignupRequest request) {
         if (!turnstileService.verifyToken(request.turnstileToken(), null)) {
             throw new IllegalArgumentException("Invalid Turnstile token");
+        }
+
+        if (request.username().equalsIgnoreCase(adminUsername)) {
+            throw new IllegalArgumentException("Username already taken");
         }
 
         if (vendorRepository.existsByUsername(request.username())) {
@@ -146,6 +157,25 @@ public class AuthService {
 
         return new AuthResponse(token);
 }
+
+    /**
+     * Authenticates the in-memory admin (no turnstile, no vendor checks) and issues an ADMIN-scoped
+     * JWT. A vendor presenting valid credentials here is rejected — only ROLE_ADMIN gets a token.
+     */
+    public AuthResponse adminLogin(AdminLoginRequest request) {
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password()));
+            boolean isAdmin = auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            if (!isAdmin) {
+                throw new AuthException("Invalid credentials");
+            }
+            return new AuthResponse(jwtService.generateToken((UserDetails) auth.getPrincipal()));
+        } catch (AuthenticationException ex) {
+            throw new AuthException("Invalid credentials");
+        }
+    }
 
     /**
      * Revokes the given token so it can no longer authenticate, even though it has not yet expired.

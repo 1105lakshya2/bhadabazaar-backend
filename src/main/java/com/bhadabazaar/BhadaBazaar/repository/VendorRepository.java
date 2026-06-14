@@ -25,6 +25,9 @@ public interface VendorRepository extends JpaRepository<Vendor, Long> {
             com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus status,
             java.time.LocalDateTime cutoff);
 
+    // Admin: list vendors filtered by status (not paginated).
+    List<Vendor> findByStatus(com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus status);
+
     Page<Vendor> findByCity(String city, Pageable pageable);
 
     // Public listings already filter to APPROVED, which excludes SUSPENDED and DELETED vendors.

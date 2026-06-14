@@ -76,4 +76,14 @@ public class GlobalExceptionHandler {
                         ex.getMessage()
                 ));
     }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLocked(AccountLockedException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse(
+                        HttpStatus.TOO_MANY_REQUESTS.value(),
+                        "Too Many Requests",
+                        ex.getMessage()
+                ));
+    }
 }

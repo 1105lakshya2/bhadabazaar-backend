@@ -50,6 +50,14 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
             .maximumSize(50_000)
             .build();
 
+    // Password-confirm endpoints (earnings + account deletion). These guard money and account
+    // existence behind a re-entered password, so they're a brute-force target; throttle them very
+    // tightly, per vendor. Complements the failed-attempt lockout in VendorService.
+    private final Cache<String, Bucket> sensitiveBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(Duration.ofMinutes(10))
+            .maximumSize(50_000)
+            .build();
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // Don't spend tokens on CORS preflight.
@@ -81,6 +89,9 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
         }
         if (path.startsWith("/api/v1/vendor/")) {
             String key = vendorKey(request);
+            if (isSensitivePath(path)) {
+                return sensitiveBuckets.get(key, k -> createSensitiveBucket());
+            }
             return isUploadPath(path)
                     ? uploadBuckets.get(key, k -> createUploadBucket())
                     : vendorBuckets.get(key, k -> createVendorBucket());
@@ -127,6 +138,15 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
         return path.endsWith("/images") || path.endsWith("/store/image");
     }
 
+    /**
+     * Password-confirm endpoints: POST /vendor/earnings(/reset|/resets) and
+     * POST /vendor/account/delete. Matched on a path segment so future /earnings sub-paths are
+     * covered automatically.
+     */
+    private boolean isSensitivePath(String path) {
+        return path.contains("/vendor/earnings") || path.endsWith("/account/delete");
+    }
+
     private Bucket createAuthBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.classic(5, Refill.greedy(10, Duration.ofMinutes(1))))
@@ -148,6 +168,12 @@ public class RateLimitingInterceptor implements HandlerInterceptor {
     private Bucket createUploadBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.classic(30, Refill.greedy(30, Duration.ofMinutes(1))))
+                .build();
+    }
+
+    private Bucket createSensitiveBucket() {
+        return Bucket.builder()
+                .addLimit(Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1))))
                 .build();
     }
 }

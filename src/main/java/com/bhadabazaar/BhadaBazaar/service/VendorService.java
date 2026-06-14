@@ -18,6 +18,9 @@ import com.bhadabazaar.BhadaBazaar.repository.VendorEarningsResetRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import com.bhadabazaar.BhadaBazaar.exception.AuthException;
+import com.bhadabazaar.BhadaBazaar.exception.AccountLockedException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.web.multipart.MultipartFile;
 import com.bhadabazaar.BhadaBazaar.service.CloudflareImageService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import java.util.List;
@@ -49,6 +53,19 @@ public class VendorService {
     private final ItemImageRepository itemImageRepository;
     private final VendorEarningsResetRepository vendorEarningsResetRepository;
     private final PasswordEncoder passwordEncoder;
+
+    // After this many consecutive wrong-password attempts on the password-confirm endpoints, the
+    // vendor is locked out for LOCKOUT_WINDOW. This defends against slow brute force that stays
+    // under the 5/min rate-limit bucket. Counter is keyed by username, cleared on a correct password.
+    private static final int MAX_PASSWORD_ATTEMPTS = 5;
+    private static final Duration LOCKOUT_WINDOW = Duration.ofMinutes(15);
+
+    private final Cache<String, Integer> failedPasswordAttempts = Caffeine.newBuilder()
+            // expireAfterWrite, not access: the window starts at the last failed attempt and the lock
+            // lifts after LOCKOUT_WINDOW of quiet, regardless of how often the client polls.
+            .expireAfterWrite(LOCKOUT_WINDOW)
+            .maximumSize(50_000)
+            .build();
 
     public VendorResponse getVendorProfile(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
@@ -73,13 +90,29 @@ public class VendorService {
     return mapCategories(vendor); // Reuse the helper method to keep it DRY
     }
 
-    /** Verifies the vendor's password before returning the vendor; used by sensitive earnings reads/writes. */
+    /**
+     * Verifies the vendor's password before returning the vendor; used by all sensitive password-confirm
+     * endpoints (earnings reads/writes and account deletion). Enforces a lockout after
+     * {@link #MAX_PASSWORD_ATTEMPTS} consecutive wrong attempts and clears the counter on success.
+     */
     private Vendor verifyPassword(String username, String rawPassword) {
+        Integer attempts = failedPasswordAttempts.getIfPresent(username);
+        if (attempts != null && attempts >= MAX_PASSWORD_ATTEMPTS) {
+            // Locked: don't even check the password, so attempts during the lock don't extend it.
+            throw new AccountLockedException(
+                    "Too many incorrect password attempts. Please try again after "
+                            + LOCKOUT_WINDOW.toMinutes() + " minutes.");
+        }
+
         Vendor vendor = vendorRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
         if (!passwordEncoder.matches(rawPassword, vendor.getPasswordHash())) {
+            // merge is atomic on the backing ConcurrentMap, so concurrent attempts count correctly.
+            failedPasswordAttempts.asMap().merge(username, 1, Integer::sum);
             throw new AuthException("Incorrect password");
         }
+
+        failedPasswordAttempts.invalidate(username);
         return vendor;
     }
 
@@ -121,11 +154,7 @@ public class VendorService {
      */
     @Transactional
     public void requestAccountDeletion(String username, String rawPassword) {
-        Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
-        if (!passwordEncoder.matches(rawPassword, vendor.getPasswordHash())) {
-            throw new AuthException("Incorrect password");
-        }
+        Vendor vendor = verifyPassword(username, rawPassword);
         vendor.setStatus(VendorStatus.DELETED);
         vendor.setDeletionRequestedAt(LocalDateTime.now());
         vendorRepository.save(vendor);

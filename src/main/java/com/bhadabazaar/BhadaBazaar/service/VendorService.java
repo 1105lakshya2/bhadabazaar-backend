@@ -18,6 +18,7 @@ import com.bhadabazaar.BhadaBazaar.repository.VendorEarningsResetRepository;
 import com.bhadabazaar.BhadaBazaar.repository.VendorRepository;
 import com.bhadabazaar.BhadaBazaar.security.CloudflareTurnstileService;
 import com.bhadabazaar.BhadaBazaar.exception.AuthException;
+import com.bhadabazaar.BhadaBazaar.exception.BusinessException;
 import com.bhadabazaar.BhadaBazaar.exception.AccountLockedException;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -69,23 +70,23 @@ public class VendorService {
 
     public VendorResponse getVendorProfile(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return mapToResponse(vendor);
     }
 
     public VendorResponse getVendorProfile(Long storeId) {
         Vendor vendor = vendorRepository.findById(storeId)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         // Hide suspended and pending-deletion stores from the public store page.
         if (vendor.getStatus() == VendorStatus.SUSPENDED || vendor.getStatus() == VendorStatus.DELETED) {
-            throw new RuntimeException("Vendor not found");
+            throw new BusinessException("Vendor not found");
         }
         return mapToResponse(vendor);
     }
 
     public List<ItemCategory> getVendorCategories(String username) {
     Vendor vendor = vendorRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Vendor not found"));
+            .orElseThrow(() -> new BusinessException("Vendor not found"));
 
     return mapCategories(vendor); // Reuse the helper method to keep it DRY
     }
@@ -105,7 +106,7 @@ public class VendorService {
         }
 
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         if (!passwordEncoder.matches(rawPassword, vendor.getPasswordHash())) {
             // merge is atomic on the backing ConcurrentMap, so concurrent attempts count correctly.
             failedPasswordAttempts.asMap().merge(username, 1, Integer::sum);
@@ -199,7 +200,7 @@ public class VendorService {
 
     public VendorDashboardStats getVendorStats(String username) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         Long vendorId = vendor.getId();
         
         long bookings = bookingRepository.countByVendorIdAndStatus(vendorId, BookingStatus.BOOKED);
@@ -239,7 +240,7 @@ public class VendorService {
 
     public VendorResponse updateStoreImage(String username, MultipartFile file) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         
         if (vendor.getStoreImagePublicId() != null) {
             cloudinaryService.deleteFile(vendor.getStoreImagePublicId());

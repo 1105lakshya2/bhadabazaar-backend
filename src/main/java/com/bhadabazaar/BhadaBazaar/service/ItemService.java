@@ -1,4 +1,5 @@
 package com.bhadabazaar.BhadaBazaar.service;
+import com.bhadabazaar.BhadaBazaar.exception.BusinessException;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Item;
 import com.bhadabazaar.BhadaBazaar.domain.entity.ItemImage;
@@ -46,7 +47,7 @@ public class ItemService {
     @Transactional
     public ItemResponse createItem(String username, ItemCreateRequest request) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
 
         // Enforce the vendor's subscription item cap (counts only live, non-deleted items).
         SubscriptionTier tier = vendor.getSubscriptionTier();
@@ -189,9 +190,9 @@ public class ItemService {
     public void deleteImage(String username, Long itemId, Long imageId) {
         Item item = findOwnedItem(username, itemId);
         ItemImage image = itemImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found"));
+                .orElseThrow(() -> new BusinessException("Image not found"));
         if (!image.getItem().getId().equals(item.getId())) {
-             throw new RuntimeException("Image does not belong to item");
+             throw new BusinessException("Image does not belong to item");
         }
         if (image.getImagePublicId() != null) {
             cloudinaryService.deleteFile(image.getImagePublicId());
@@ -202,7 +203,7 @@ public class ItemService {
     @Transactional(readOnly = true)
     public Page<ItemResponse> getVendorItems(String username, ItemCategory category, ItemGenderType gender, String searchByName, String searchByID, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return itemRepository.findVendorItems(vendor.getId(), category, gender, searchByName, searchByID, pageable)
                 .map(this::mapToResponse);
     }
@@ -219,7 +220,7 @@ public class ItemService {
     @Transactional(readOnly = true)
     public ItemResponse getItemDetails(Long itemId) {
         Item item = itemRepository.findByIdAndIsDeletedFalseAndIsActiveTrue(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new BusinessException("Item not found"));
         return mapToResponse(item);
     }
 
@@ -230,15 +231,15 @@ public class ItemService {
 
     private Item findOwnedItem(String username, Long itemId) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return itemRepository.findByIdAndVendorId(itemId, vendor.getId())
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new BusinessException("Item not found"));
     }
     
     @Transactional(readOnly = true)
     public ItemResponse getItemByCodeForVendor(Long vendorId, String itemCode) {
         Item item = itemRepository.findByVendorIdAndItemCode(vendorId, itemCode)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new BusinessException("Item not found"));
         return mapToResponse(item);
     }
 

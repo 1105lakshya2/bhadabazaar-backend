@@ -1,4 +1,5 @@
 package com.bhadabazaar.BhadaBazaar.service;
+import com.bhadabazaar.BhadaBazaar.exception.BusinessException;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Vendor;
 import com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier;
@@ -65,7 +66,7 @@ public class AdminService {
     @Transactional
     public void updateSubscriptionTier(String username, SubscriptionTier tier) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         vendor.setSubscriptionTier(tier);
         vendorRepository.save(vendor);
     }

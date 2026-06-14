@@ -1,4 +1,5 @@
 package com.bhadabazaar.BhadaBazaar.service;
+import com.bhadabazaar.BhadaBazaar.exception.BusinessException;
 
 import com.bhadabazaar.BhadaBazaar.domain.entity.Booking;
 import com.bhadabazaar.BhadaBazaar.domain.entity.BookingItem;
@@ -37,7 +38,7 @@ public class BookingService {
     @Transactional
     public BookingResponse createBooking(String username, BookingCreateRequest request) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
 
         LocalDate fromDate = request.fromDate();
         LocalDate toDate = request.toDate();
@@ -57,13 +58,13 @@ public class BookingService {
         // this makes the availability check below atomic with the insert.
         List<Item> items = itemRepository.findAllByIdForUpdate(request.itemIds());
         if (items.size() != request.itemIds().size()) {
-            throw new RuntimeException("Some items not found");
+            throw new BusinessException("Some items not found");
         }
         // Every booked item must belong to the calling vendor
         boolean allOwned = items.stream()
                 .allMatch(item -> item.getVendor().getId().equals(vendor.getId()));
         if (!allOwned) {
-            throw new RuntimeException("Some items not found");
+            throw new BusinessException("Some items not found");
         }
 
         // With the item rows locked, no concurrent booking can slip in between this check and the
@@ -141,7 +142,7 @@ public class BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getVendorBookings(String username, BookingStatus status, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return bookingRepository.findVendorBookings(vendor.getId(), status, pageable)
                 .map(this::mapToResponse);
     }
@@ -149,7 +150,7 @@ public class BookingService {
     @Transactional(readOnly = true)
     public List<BookingResponse> searchBookingsByPhone(String username, String phone) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return bookingRepository
         .findByVendorIdAndStatusAndCustomerPhoneContainingIgnoreCase(vendor.getId(), BookingStatus.BOOKED, phone)
         .stream()
@@ -160,7 +161,7 @@ public class BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookingsByDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         return bookingRepository.findByVendorIdAndStatusAndFromDate(vendor.getId(), BookingStatus.BOOKED, date, pageable)
                 .map(this::mapToResponse);
     }
@@ -168,7 +169,7 @@ public class BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchReturnPendingBeforeDate(String username, LocalDate date, Pageable pageable) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         LocalDate deadlineWithBuffer = date.plusDays(1);
         return bookingRepository.findReturnPendingBeforeDate(vendor.getId(), deadlineWithBuffer, pageable)
                 .map(this::mapToResponse);
@@ -177,9 +178,9 @@ public class BookingService {
     @Transactional
     public void updateBookingStatus(String username, Long bookingId, BookingStatus status) {
         Vendor vendor = vendorRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Vendor not found"));
+                .orElseThrow(() -> new BusinessException("Vendor not found"));
         Booking booking = bookingRepository.findByIdAndVendorId(bookingId, vendor.getId())
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new BusinessException("Booking not found"));
 
         if (status == BookingStatus.CLOSED && booking.getStatus() != BookingStatus.CLOSED) {
             // Atomic increment; @Version on Booking guards against two concurrent closes both

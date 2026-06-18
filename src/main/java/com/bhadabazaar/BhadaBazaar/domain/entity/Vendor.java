@@ -2,6 +2,7 @@ package com.bhadabazaar.BhadaBazaar.domain.entity;
 
 import com.bhadabazaar.BhadaBazaar.domain.enums.GenderType;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
+import com.bhadabazaar.BhadaBazaar.domain.enums.SubscriptionTier;
 import com.bhadabazaar.BhadaBazaar.domain.enums.VendorStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,9 @@ import org.hibernate.type.SqlTypes;
 import com.bhadabazaar.BhadaBazaar.domain.converter.StringArrayConverter;
 
 @Entity
-@Table(name = "vendors")
+@Table(name = "vendors", uniqueConstraints = {
+    @UniqueConstraint(name = "idx_vendors_username", columnNames = "username")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,6 +33,10 @@ public class Vendor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /** Optimistic-locking guard against concurrent modification of this vendor row. */
+    @Version
+    private Long version;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -46,9 +53,12 @@ public class Vendor {
     @Column(nullable = false)
     private String city;
 
+    @Column(nullable = false)
+    private String state;
+
     private String address;
 
-    @Column(name = "primary_phone", nullable = false)
+    @Column(name = "primary_phone", nullable = false, unique = true)
     private String primaryPhone;
 
     @Column(name = "secondary_phone1")
@@ -75,6 +85,11 @@ public class Vendor {
     @Column(nullable = false)
     private VendorStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_tier", nullable = false)
+    @Builder.Default
+    private SubscriptionTier subscriptionTier = SubscriptionTier.FREE;
+
     @Column(name = "yearly_price", nullable = false)
     private BigDecimal yearlyPrice;
 
@@ -84,6 +99,10 @@ public class Vendor {
 
     @Column(name = "subscription_start_date", nullable = false)
     private LocalDate subscriptionStartDate;
+
+    /** Set when the vendor requests account deletion (status becomes DELETED); null otherwise. */
+    @Column(name = "deletion_requested_at")
+    private LocalDateTime deletionRequestedAt;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -8,6 +8,8 @@ import com.bhadabazaar.BhadaBazaar.dto.StoreSearchResponse;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
 import com.bhadabazaar.BhadaBazaar.service.VendorService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,15 +17,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Validated
 public class PublicController {
 
     private final VendorService vendorService;
@@ -32,6 +37,11 @@ public class PublicController {
     @GetMapping("/cities")
     public ResponseEntity<List<String>> getCities() {
         return ResponseEntity.ok(vendorService.getAllCities());
+    }
+
+    @GetMapping("/states")
+    public ResponseEntity<Map<String, List<String>>> getStatesCities() {
+        return ResponseEntity.ok(vendorService.getStatesCitiesMap());
     }
 
     @GetMapping("/stores/search")
@@ -67,8 +77,8 @@ public class PublicController {
             @RequestParam(required = false) String gender,
             @RequestParam(required = false) String searchByName,
             @RequestParam(required = false) String searchByID,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         if (searchByName != null) {
         searchByName = searchByName.trim();

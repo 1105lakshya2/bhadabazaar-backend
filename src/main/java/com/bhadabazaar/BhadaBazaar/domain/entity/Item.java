@@ -14,6 +14,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+// item_code is unique per vendor among non-deleted items only, so a soft-deleted item frees its
+// code for reuse. That requires a PARTIAL unique index (WHERE is_deleted = false), which JPA's
+// @UniqueConstraint cannot express, so it is defined directly in the DB:
+//   CREATE UNIQUE INDEX uq_items_vendor_itemcode_active
+//       ON items (vendor_id, item_code) WHERE is_deleted = false;
 @Table(name = "items")
 @Data
 @NoArgsConstructor
@@ -29,7 +34,7 @@ public class Item {
     @JoinColumn(name = "vendor_id", nullable = false)
     private Vendor vendor;
 
-    @Column(name = "item_code", unique = true, nullable = false)
+    @Column(name = "item_code", nullable = false)
     private String itemCode;
 
     @Column(nullable = false)

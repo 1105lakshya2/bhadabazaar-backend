@@ -3,9 +3,11 @@ package com.bhadabazaar.BhadaBazaar.repository;
 import com.bhadabazaar.BhadaBazaar.domain.entity.Item;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,14 +17,18 @@ import java.util.List;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
-    boolean existsByName(String name);
     Page<Item> findByVendorId(Long vendorId, Pageable pageable);
+
+    // item_code uniqueness is per-vendor and ignores soft-deleted items (a deleted item frees its code).
+    boolean existsByVendorIdAndItemCodeAndIsDeletedFalse(Long vendorId, String itemCode);
+    boolean existsByVendorIdAndItemCodeAndIsDeletedFalseAndIdNot(Long vendorId, String itemCode, Long id);
 
     @Query(value = """
     SELECT i.* FROM items i
     WHERE i.vendor_id = :vendorId
     AND i.is_active = true
     AND i.is_deleted = false
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id = i.vendor_id AND v.status = 'APPROVED')
 
     AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
     AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
@@ -43,6 +49,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     WHERE i.vendor_id = :vendorId
     AND i.is_active = true
     AND i.is_deleted = false
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id = i.vendor_id AND v.status = 'APPROVED')
 
     AND (CAST(:category AS text) IS NULL OR i.category = CAST(:category AS text))
     AND (CAST(:gender AS text) IS NULL OR i.gender = CAST(:gender AS text))
@@ -100,5 +107,23 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Query("SELECT i FROM Item i WHERE i.vendor.id = :vendorId AND i.itemCode = :itemCode AND i.isDeleted = false")
     java.util.Optional<Item> findByVendorIdAndItemCode(@Param("vendorId") Long vendorId, @Param("itemCode") String itemCode);
 
+    java.util.Optional<Item> findByIdAndVendorId(Long id, Long vendorId);
+
+    // Public lookup: only items that are live (not soft-deleted) and active are individually visible.
+    java.util.Optional<Item> findByIdAndIsDeletedFalseAndIsActiveTrue(Long id);
+
+    /**
+     * Locks the given item rows FOR UPDATE so concurrent bookings for the same item serialize.
+     * Ordered by id to ensure a consistent lock acquisition order and avoid deadlocks.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Item i WHERE i.id IN :ids ORDER BY i.id")
+    List<Item> findAllByIdForUpdate(@Param("ids") List<Long> ids);
+
     long countByVendorIdAndIsDeletedFalse(Long vendorId);
+
+    // Used by the hard-delete (account purge) flow. Delete item_images first (see ItemImageRepository).
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Item i WHERE i.vendor.id = :vendorId")
+    void deleteByVendorId(@Param("vendorId") Long vendorId);
 }

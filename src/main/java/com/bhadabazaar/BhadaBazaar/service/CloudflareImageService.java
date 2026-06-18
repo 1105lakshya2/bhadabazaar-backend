@@ -1,10 +1,12 @@
 package com.bhadabazaar.BhadaBazaar.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.LinkedMultiValueMap;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CloudflareImageService {
@@ -28,7 +31,7 @@ public class CloudflareImageService {
     @Value("${cloudflare.image-delivery-url}")
     private String deliveryUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     private static final Set<String> ALLOWED_EXT =
             Set.of("jpg", "jpeg", "png", "webp", "avif");
@@ -74,6 +77,9 @@ public class CloudflareImageService {
                     "public_id", imageId
             );
 
+        } catch (HttpClientErrorException e) {
+            log.error("Cloudflare upload error - status: {}, body: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Cloudflare image upload failed: " + e.getStatusCode(), e);
         } catch (IOException e) {
             throw new RuntimeException("Cloudflare upload failed", e);
         }

@@ -5,19 +5,26 @@ import org.springframework.data.domain.Sort;
 import com.bhadabazaar.BhadaBazaar.domain.enums.BookingStatus;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemCategory;
 import com.bhadabazaar.BhadaBazaar.domain.enums.ItemGenderType;
+import com.bhadabazaar.BhadaBazaar.dto.AccountDeleteRequest;
 import com.bhadabazaar.BhadaBazaar.dto.BookingCreateRequest;
+import com.bhadabazaar.BhadaBazaar.dto.EarningsResetResponse;
 import com.bhadabazaar.BhadaBazaar.dto.BookingResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemCreateRequest;
 import com.bhadabazaar.BhadaBazaar.dto.ItemImageResponse;
 import com.bhadabazaar.BhadaBazaar.dto.ItemResponse;
 import com.bhadabazaar.BhadaBazaar.dto.MessageResponse;
+import com.bhadabazaar.BhadaBazaar.dto.PasswordConfirmRequest;
 import com.bhadabazaar.BhadaBazaar.dto.VendorDashboardStats;
 import com.bhadabazaar.BhadaBazaar.dto.VendorEarnings;
 import com.bhadabazaar.BhadaBazaar.dto.VendorResponse;
 import com.bhadabazaar.BhadaBazaar.service.BookingService;
 import com.bhadabazaar.BhadaBazaar.service.ItemService;
 import com.bhadabazaar.BhadaBazaar.service.VendorService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -38,6 +45,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/vendor")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('VENDOR')")
+@Validated
 public class VendorController {
 
     private final VendorService vendorService;
@@ -87,8 +95,8 @@ public class VendorController {
             @RequestParam(required = false) ItemGenderType gender,
             @RequestParam(required = false) String searchByName,
             @RequestParam(required = false) String searchByID,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
          // Normalize search
     if (searchByName != null) {
@@ -107,42 +115,41 @@ public class VendorController {
     }
 
     @PostMapping("/items")
-    public ResponseEntity<ItemResponse> createItem(Authentication authentication, @RequestBody ItemCreateRequest request) {
+    public ResponseEntity<ItemResponse> createItem(Authentication authentication, @Valid @RequestBody ItemCreateRequest request) {
         return ResponseEntity.ok(itemService.createItem(authentication.getName(), request));
     }
 
     @GetMapping("/items/{itemId}")
-    public ResponseEntity<ItemResponse> getItemDetails(@PathVariable Long itemId) {
-        // Should verify ownership, but for now just getting details
-        return ResponseEntity.ok(itemService.getItemDetails(itemId));
+    public ResponseEntity<ItemResponse> getItemDetails(Authentication authentication, @PathVariable Long itemId) {
+        return ResponseEntity.ok(itemService.getVendorItemDetails(authentication.getName(), itemId));
     }
 
     @PutMapping("/items/{itemId}")
-    public ResponseEntity<ItemResponse> updateItem(@PathVariable Long itemId, @RequestBody ItemCreateRequest request) {
-        return ResponseEntity.ok(itemService.updateItem(itemId, request));
+    public ResponseEntity<ItemResponse> updateItem(Authentication authentication, @PathVariable Long itemId, @Valid @RequestBody ItemCreateRequest request) {
+        return ResponseEntity.ok(itemService.updateItem(authentication.getName(), itemId, request));
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<MessageResponse> deleteItem(@PathVariable Long itemId) {
-        itemService.deleteItem(itemId);
+    public ResponseEntity<MessageResponse> deleteItem(Authentication authentication, @PathVariable Long itemId) {
+        itemService.deleteItem(authentication.getName(), itemId);
         return ResponseEntity.ok(new MessageResponse("Item deleted successfully"));
     }
 
     @PostMapping("/items/{itemId}/images")
-    public ResponseEntity<MessageResponse> uploadImages(@PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
-        itemService.uploadImages(itemId, files);
+    public ResponseEntity<MessageResponse> uploadImages(Authentication authentication, @PathVariable Long itemId, @RequestParam("files") List<MultipartFile> files) {
+        itemService.uploadImages(authentication.getName(), itemId, files);
         return ResponseEntity.ok(new MessageResponse("Images uploaded successfully"));
     }
 
 
     @DeleteMapping("/items/{itemId}/images/{imageId}")
-    public ResponseEntity<MessageResponse> deleteImage(@PathVariable Long itemId, @PathVariable Long imageId) {
-        itemService.deleteImage(itemId, imageId);
+    public ResponseEntity<MessageResponse> deleteImage(Authentication authentication, @PathVariable Long itemId, @PathVariable Long imageId) {
+        itemService.deleteImage(authentication.getName(), itemId, imageId);
         return ResponseEntity.ok(new MessageResponse("Image deleted successfully"));
     }
 
     @PostMapping("/bookings")
-    public ResponseEntity<BookingResponse> createBooking(Authentication authentication, @RequestBody BookingCreateRequest request) {
+    public ResponseEntity<BookingResponse> createBooking(Authentication authentication, @Valid @RequestBody BookingCreateRequest request) {
         return ResponseEntity.ok(bookingService.createBooking(authentication.getName(), request));
     }
 
@@ -150,8 +157,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> getBookings(
             Authentication authentication,
             @RequestParam(required = true) BookingStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         if(status == BookingStatus.BOOKED) {
           Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending()); 
@@ -165,8 +172,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchBookingsByDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending());
         return ResponseEntity.ok(bookingService.searchBookingsByDate(authentication.getName(), date, pageable));
@@ -176,8 +183,8 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchReturnPendingBeforeDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
         return ResponseEntity.ok(bookingService.searchReturnPendingBeforeDate(authentication.getName(), date, pageable));
@@ -192,14 +199,14 @@ public class VendorController {
     }
 
     @PatchMapping("/bookings/{bookingId}/return")
-    public ResponseEntity<MessageResponse> markReturnPending(@PathVariable Long bookingId) {
-        bookingService.updateBookingStatus(bookingId, BookingStatus.RETURN_PENDING);
+    public ResponseEntity<MessageResponse> markReturnPending(Authentication authentication, @PathVariable Long bookingId) {
+        bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.RETURN_PENDING);
         return ResponseEntity.ok(new MessageResponse("Booking marked as return pending"));
     }
 
     @PatchMapping("/bookings/{bookingId}/close")
-    public ResponseEntity<MessageResponse> closeBooking(@PathVariable Long bookingId) {
-        bookingService.updateBookingStatus(bookingId, BookingStatus.CLOSED);
+    public ResponseEntity<MessageResponse> closeBooking(Authentication authentication, @PathVariable Long bookingId) {
+        bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.CLOSED);
         return ResponseEntity.ok(new MessageResponse("Booking closed successfully"));
     }
     
@@ -212,8 +219,8 @@ public class VendorController {
             @RequestParam(required = false) String gender,
             @RequestParam(required = false) String searchByName,
             @RequestParam(required = false) String searchByID,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
     ) {
          // Need vendor ID from auth.
     if (searchByName != null) {
@@ -233,15 +240,28 @@ public class VendorController {
          return ResponseEntity.ok(itemService.getAvailableItems(vendor.id(), from, to, category, gender, searchByName,searchByID, PageRequest.of(page, pageSize)));
     }
     
-    @GetMapping("/earnings")
-    public ResponseEntity<VendorEarnings> getEarnings(Authentication authentication) {
-        BigDecimal totalEarnings = vendorService.getEarnings(authentication.getName());
+    @PostMapping("/earnings")
+    public ResponseEntity<VendorEarnings> getEarnings(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        BigDecimal totalEarnings = vendorService.getEarnings(authentication.getName(), request.password());
         return ResponseEntity.ok(new VendorEarnings(totalEarnings));
     }
-    
+
     @PostMapping("/earnings/reset")
-    public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication) {
-        vendorService.resetEarnings(authentication.getName());
+    public ResponseEntity<MessageResponse> resetEarnings(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        vendorService.resetEarnings(authentication.getName(), request.password());
         return ResponseEntity.ok(new MessageResponse("Earnings reset successfully"));
+    }
+
+    @PostMapping("/earnings/resets")
+    public ResponseEntity<List<EarningsResetResponse>> getEarningsResets(Authentication authentication, @Valid @RequestBody PasswordConfirmRequest request) {
+        return ResponseEntity.ok(vendorService.getEarningsResetHistory(authentication.getName(), request.password()));
+    }
+
+    @PostMapping("/account/delete")
+    public ResponseEntity<MessageResponse> deleteAccount(Authentication authentication, @Valid @RequestBody AccountDeleteRequest request) {
+        vendorService.requestAccountDeletion(authentication.getName(), request.password());
+        return ResponseEntity.ok(new MessageResponse(
+                "Account deletion requested. Your account will be permanently deleted in 24 hours. "
+                        + "Log in again within this window to cancel the deletion."));
     }
 }

@@ -16,5 +16,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Local Spring config
-application.properties
+# Ignore local dev properties
+application-dev.properties

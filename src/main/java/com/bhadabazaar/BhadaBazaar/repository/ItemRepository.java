@@ -42,6 +42,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
         AND b.status IN ('BOOKED', 'RETURN_PENDING')
         AND (b.from_date <= :toDate AND b.to_date >= :fromDate)
     )
+    ORDER BY i.id
     """,
     countQuery = """
     SELECT COUNT(*)
@@ -94,6 +95,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
         CAST(:searchByID AS string) IS NULL OR 
         LOWER(i.itemCode) LIKE LOWER(CONCAT('%', CAST(:searchByID AS string), '%'))
     )
+    ORDER BY i.id
     """)
     Page<Item> findVendorItems(
         @Param("vendorId") Long vendorId,

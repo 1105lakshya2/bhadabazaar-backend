@@ -157,14 +157,14 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> getBookings(
             Authentication authentication,
             @RequestParam(required = true) BookingStatus status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize
     ) {
         if(status == BookingStatus.BOOKED) {
-          Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending()); 
+          Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending().and(Sort.by("id").ascending())); 
           return ResponseEntity.ok(bookingService.getVendorBookings(authentication.getName(), status, pageable)); 
         }
-        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending().and(Sort.by("id").ascending()));
         return ResponseEntity.ok(bookingService.getVendorBookings(authentication.getName(), status, pageable));
     }
 
@@ -172,10 +172,10 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchBookingsByDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending());
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("fromDate").ascending().and(Sort.by("id").ascending()));
         return ResponseEntity.ok(bookingService.searchBookingsByDate(authentication.getName(), date, pageable));
     }
 
@@ -183,10 +183,10 @@ public class VendorController {
     public ResponseEntity<Page<BookingResponse>> searchReturnPendingBeforeDate(
             Authentication authentication,
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int pageSize
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending());
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by("toDate").ascending().and(Sort.by("id").ascending()));
         return ResponseEntity.ok(bookingService.searchReturnPendingBeforeDate(authentication.getName(), date, pageable));
     }
 

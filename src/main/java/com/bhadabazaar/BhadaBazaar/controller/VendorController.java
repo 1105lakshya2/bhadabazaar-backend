@@ -204,6 +204,12 @@ public class VendorController {
         return ResponseEntity.ok(new MessageResponse("Booking marked as return pending"));
     }
 
+    @PatchMapping("/bookings/{bookingId}/revert")
+    public ResponseEntity<MessageResponse> revertClosedBooking(Authentication authentication, @PathVariable Long bookingId) {
+        bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.BOOKED);
+        return ResponseEntity.ok(new MessageResponse("Booking reverted to Booked State"));
+    }
+
     @PatchMapping("/bookings/{bookingId}/close")
     public ResponseEntity<MessageResponse> closeBooking(Authentication authentication, @PathVariable Long bookingId) {
         bookingService.updateBookingStatus(authentication.getName(), bookingId, BookingStatus.CLOSED);

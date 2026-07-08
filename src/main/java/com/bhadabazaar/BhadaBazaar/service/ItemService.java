@@ -121,7 +121,6 @@ public class ItemService {
                 cloudinaryService.deleteFile(img.getImagePublicId());
             }
         }
-        itemImageRepository.deleteAll(item.getImages());
         item.setIsDeleted(true);
         itemRepository.save(item);
     }
